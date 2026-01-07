@@ -1,4 +1,6 @@
-public class Main {
+package Exceptions;
+
+public class Main  {
 //    public static void divide(int a,int b ) {
 //        try {
 //            if(b==0){

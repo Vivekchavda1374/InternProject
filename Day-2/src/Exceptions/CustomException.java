@@ -1,3 +1,5 @@
+package Exceptions;
+
 public class CustomException {
     public static void validateAge(int age) throws InvalideExceptions {
         if (age < 18) {
