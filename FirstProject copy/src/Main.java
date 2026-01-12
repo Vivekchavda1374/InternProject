@@ -25,7 +25,7 @@ public class Main {
                 } catch (InterruptedException e) { // catch interruption
                     Thread.currentThread().interrupt(); // restore interrupt status
                 } 
-            }); 
+            });
             loaderDone.set(true); // mark loader as done after adding all products
         }; 
 
