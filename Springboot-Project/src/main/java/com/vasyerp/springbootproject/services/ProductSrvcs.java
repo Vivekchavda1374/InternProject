@@ -1,12 +1,14 @@
 package com.vasyerp.springbootproject.services;
 
-import java.util.List;
-
-import com.vasyerp.springbootproject.repository.ProductRepo;
 import com.vasyerp.springbootproject.entity.Product;
+import com.vasyerp.springbootproject.repository.ProductRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class ProductSrvcs { // service layer for product operations
@@ -15,6 +17,18 @@ public class ProductSrvcs { // service layer for product operations
     @Autowired
     public ProductSrvcs(ProductRepo productRepo) {
         this.productRepo = productRepo; // assign repository reference
+    }
+
+    @Async
+    public CompletableFuture<Void> performAsyncTask() {
+        System.out.println("Async task started by thread: " + Thread.currentThread().getName());
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        System.out.println("Async task completed by thread: " + Thread.currentThread().getName());
+        return CompletableFuture.completedFuture(null);
     }
 
     public Product addProduct(Product product) {

@@ -57,4 +57,10 @@ public class ProductController {
     public List<Product> sortByName() {
         return productSrvcs.sortProductByName();
     }
+
+    @GetMapping("/test-async")
+    public String testAsync() {
+        productSrvcs.performAsyncTask();
+        return "Async task triggered";
+    }
 }
