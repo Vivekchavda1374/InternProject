@@ -1,0 +1,430 @@
+-- -- -- create table cars(
+-- -- --                      brand VARCHAR(255),
+-- -- --                      model VARCHAR(255),
+-- -- --                      year INT
+-- -- -- );
+-- -- -- INSERT INTO cars (brand, model, year)
+-- -- -- VALUES
+-- -- --     ('Volvo', 'p1800', 1968),
+-- -- --     ('BMW', 'M1', 1978),public
+-- -- --     ('Toyota', 'Celica', 1975);
+-- -- -- SELECT * FROM cars
+-- -- -- WHERE brand = 'Volvo';
+-- -- -- SELECT * FROM cars
+-- -- -- WHERE year < 1975;
+-- -- -- SELECT * FROM cars
+-- -- -- WHERE year <= 1975;
+-- --
+-- -- -- SELECT * FROM cars
+-- -- -- WHERE year >= 1975;
+-- --
+-- -- -- SELECT * FROM cars
+-- -- -- WHERE brand <> 'Volvo';
+-- --
+-- -- -- SELECT * FROM cars
+-- -- -- WHERE model ILIKE 'm%';
+-- --
+-- -- -- SELECT * FROM cars
+-- -- -- WHERE brand = 'Volvo' AND year = 1968;
+-- --
+-- -- -- SELECT * FROM cars
+-- -- -- WHERE brand = 'Volvo' OR year = 1975;
+-- --
+-- -- -- SELECT * from cars
+-- -- -- where brand in ('Volvo','Ford');
+-- -- -- SELECT * from cars
+-- -- -- where year between 1970 and 1999
+-- -- -- SELECT * FROM cars
+-- -- -- WHERE model IS NULL;
+-- -- -- SELECT * FROM cars
+-- -- -- WHERE brand NOT LIKE 'B%';
+-- --
+-- -- -- SELECT * FROM cars
+-- -- -- WHERE model IS NOT NULL;
+-- --
+-- -- -- SELECT DISTINCT country FROM customers;
+-- -- -- SELECT count(DISTINCT country)  from customers;
+-- --
+-- -- -- SELECT * from customers
+-- -- -- where city = 'London';
+-- --
+-- -- -- SELECT * from customers
+-- -- -- where customer_id = 91;
+-- --
+-- -- -- select * from customers
+-- -- -- order by country desc ;
+-- --
+-- -- -- select * from customers
+-- -- -- limit 20;
+-- -- -- SELECT MAX(customer_id) AS lowest_index
+-- -- -- FROM customers;
+-- -- --
+-- -- -- SELECT (customer_id)
+-- -- -- FROM customers
+-- -- -- WHERE city = 'London'
+-- -- -- order by customers.customer_id desc ;
+-- --
+-- -- -- SELECT SUM(quantity)
+-- -- -- FROM order_details;
+-- -- -- create table  if not exists products(
+-- -- --                                         product_id SERIAL NOT NULL PRIMARY KEY,
+-- -- --                                         product_name VARCHAR(255),
+-- -- --                                         category_id INT,
+-- -- --                                         unit VARCHAR(255),
+-- -- --                                         price DECIMAL(10, 2)
+-- -- -- ) ;
+-- -- -- select * from products;
+-- -- INSERT INTO products (product_id, product_name, category_id, unit, price)
+-- -- VALUES
+-- --     (1, 'Chais', 1, '10 boxes x 20 bags', 18),
+-- --     (2, 'Chang', 1, '24 - 12 oz bottles', 19),
+-- --     (3, 'Aniseed Syrup', 2, '12 - 550 ml bottles', 10),
+-- --     (4, 'Chef Antons Cajun Seasoning', 2, '48 - 6 oz jars', 22),
+-- --     (5, 'Chef Antons Gumbo Mix', 2, '36 boxes', 21.35),
+-- --     (6, 'Grandmas Boysenberry Spread', 2, '12 - 8 oz jars', 25),
+-- --     (7, 'Uncle Bobs Organic Dried Pears', 7, '12 - 1 lb pkgs.', 30),
+-- --     (8, 'Northwoods Cranberry Sauce', 2, '12 - 12 oz jars', 40),
+-- --     (9, 'Mishi Kobe Niku', 6, '18 - 500 g pkgs.', 97),
+-- --     (10, 'Ikura', 8, '12 - 200 ml jars', 31),
+-- --     (11, 'Queso Cabrales', 4, '1 kg pkg.', 21),
+-- --     (12, 'Queso Manchego La Pastora', 4, '10 - 500 g pkgs.', 38),
+-- --     (13, 'Konbu', 8, '2 kg box', 6),
+-- --     (14, 'Tofu', 7, '40 - 100 g pkgs.', 23.25),
+-- --     (15, 'Genen Shouyu', 2, '24 - 250 ml bottles', 15.5),
+-- --     (16, 'Pavlova', 3, '32 - 500 g boxes', 17.45),
+-- --     (17, 'Alice Mutton', 6, '20 - 1 kg tins', 39),
+-- --     (18, 'Carnarvon Tigers', 8, '16 kg pkg.', 62.5),
+-- --     (19, 'Teatime Chocolate Biscuits', 3, '10 boxes x 12 pieces', 9.2),
+-- --     (20, 'Sir Rodneys Marmalade', 3, '30 gift boxes', 81),
+-- --     (21, 'Sir Rodneys Scones', 3, '24 pkgs. x 4 pieces', 10),
+-- --     (22, 'Gustafs Kneckebrod', 5, '24 - 500 g pkgs.', 21),
+-- --     (23, 'Tunnbrod', 5, '12 - 250 g pkgs.', 9),
+-- --     (24, 'Guarani Fantastica', 1, '12 - 355 ml cans', 4.5),
+-- --     (25, 'NuNuCa Nui-Nougat-Creme', 3, '20 - 450 g glasses', 14),
+-- --     (26, 'Gumber Gummiberchen', 3, '100 - 250 g bags', 31.23),
+-- --     (27, 'Schoggi Schokolade', 3, '100 - 100 g pieces', 43.9),
+-- --     (28, 'Rassle Sauerkraut', 7, '25 - 825 g cans', 45.6),
+-- --     (29, 'Thoringer Rostbratwurst', 6, '50 bags x 30 sausgs.', 123.79),
+-- --     (30, 'Nord-Ost Matjeshering', 8, '10 - 200 g glasses', 25.89),
+-- --     (31, 'Gorgonzola Telino', 4, '12 - 100 g pkgs', 12.5),
+-- --     (32, 'Mascarpone Fabioli', 4, '24 - 200 g pkgs.', 32),
+-- --     (33, 'Geitost', 4, '500 g', 2.5),
+-- --     (34, 'Sasquatch Ale', 1, '24 - 12 oz bottles', 14),
+-- --     (35, 'Steeleye Stout', 1, '24 - 12 oz bottles', 18),
+-- --     (36, 'Inlagd Sill', 8, '24 - 250 g jars', 19),
+-- --     (37, 'Gravad lax', 8, '12 - 500 g pkgs.', 26),
+-- --     (38, 'Cote de Blaye', 1, '12 - 75 cl bottles', 263.5),
+-- --     (39, 'Chartreuse verte', 1, '750 cc per bottle', 18),
+-- --     (40, 'Boston Crab Meat', 8, '24 - 4 oz tins', 18.4),
+-- --     (41, 'Jacks New England Clam Chowder', 8, '12 - 12 oz cans', 9.65),
+-- --     (42, 'Singaporean Hokkien Fried Mee', 5, '32 - 1 kg pkgs.', 14),
+-- --     (43, 'Ipoh Coffee', 1, '16 - 500 g tins', 46),
+-- --     (44, 'Gula Malacca', 2, '20 - 2 kg bags', 19.45),
+-- --     (45, 'Rogede sild', 8, '1k pkg.', 9.5),
+-- --     (46, 'Spegesild', 8, '4 - 450 g glasses', 12),
+-- --     (47, 'Zaanse koeken', 3, '10 - 4 oz boxes', 9.5),
+-- --     (48, 'Chocolade', 3, '10 pkgs.', 12.75),
+-- --     (49, 'Maxilaku', 3, '24 - 50 g pkgs.', 20),
+-- --     (50, 'Valkoinen suklaa', 3, '12 - 100 g bars', 16.25),
+-- --     (51, 'Manjimup Dried Apples', 7, '50 - 300 g pkgs.', 53),
+-- --     (52, 'Filo Mix', 5, '16 - 2 kg boxes', 7),
+-- --     (53, 'Perth Pasties', 6, '48 pieces', 32.8),
+-- --     (54, 'Tourtiare', 6, '16 pies', 7.45),
+-- --     (55, 'Pate chinois', 6, '24 boxes x 2 pies', 24),
+-- --     (56, 'Gnocchi di nonna Alice', 5, '24 - 250 g pkgs.', 38),
+-- --     (57, 'Ravioli Angelo', 5, '24 - 250 g pkgs.', 19.5),
+-- --     (58, 'Escargots de Bourgogne', 8, '24 pieces', 13.25),
+-- --     (59, 'Raclette Courdavault', 4, '5 kg pkg.', 55),
+-- --     (60, 'Camembert Pierrot', 4, '15 - 300 g rounds', 34),
+-- --     (61, 'Sirop d arable', 2, '24 - 500 ml bottles', 28.5),
+-- --     (62, 'Tarte au sucre', 3, '48 pies', 49.3),
+-- --     (63, 'Vegie-spread', 2, '15 - 625 g jars', 43.9),
+-- --     (64, 'Wimmers gute Semmelknadel', 5, '20 bags x 4 pieces', 33.25),
+-- --     (65, 'Louisiana Fiery Hot Pepper Sauce', 2, '32 - 8 oz bottles', 21.05),
+-- --     (66, 'Louisiana Hot Spiced Okra', 2, '24 - 8 oz jars', 17),
+-- --     (67, 'Laughing Lumberjack Lager', 1, '24 - 12 oz bottles', 14),
+-- --     (68, 'Scottish Longbreads', 3, '10 boxes x 8 pieces', 12.5),
+-- --     (69, 'Gudbrandsdalsost', 4, '10 kg pkg.', 36),
+-- --     (70, 'Outback Lager', 1, '24 - 355 ml bottles', 15),
+-- --     (71, 'Flotemysost', 4, '10 - 500 g pkgs.', 21.5),
+-- --     (72, 'Mozzarella di Giovanni', 4, '24 - 200 g pkgs.', 34.8),
+-- --     (73, 'Red Kaviar', 8, '24 - 150 g jars', 15),
+-- --     (74, 'Longlife Tofu', 7, '5 kg pkg.', 10),
+-- --     (75, 'Rhenbreu Klosterbier', 1, '24 - 0.5 l bottles', 7.75),
+-- --     (76, 'Lakkalikeeri', 1, '500 ml ', 18),
+-- --     (77, 'Original Frankfurter grune Soae', 2, '12 boxes', 13);
+--
+-- -- SELECT AVG(price)::NUMERIC(10,2)
+-- -- FROM products;
+-- --
+-- -- SELECT * FROM customers
+-- -- WHERE customer_name LIKE 'A%';
+-- -- SELECT * FROM customers
+-- -- WHERE customer_name LIKE '%A%';
+--
+-- SELECT * FROM customers
+-- WHERE customer_name ILIKE '%A%';
+--
+-- -- SELECT * FROM customers
+-- -- WHERE city LIKE 'L_nd__';
+--
+-- -- SELECT * FROM customers
+-- -- WHERE customer_id IN (SELECT customer_id FROM orders);
+-- --
+-- -- SELECT * FROM customers
+-- -- WHERE customer_id NOT IN (SELECT customer_id FROM orders);
+--
+-- -- SELECT * FROM Products
+-- -- WHERE product_name BETWEEN 'Pavlova' AND 'Tofu'
+-- -- ORDER BY product_name;
+--
+-- --
+-- -- SELECT customer_id AS id
+-- -- FROM customers;
+--
+--
+-- -- SELECT customer_id id
+-- -- FROM customers;
+--
+-- --
+-- -- SELECT product_name || ' ' || unit AS product
+-- -- FROM products;
+--
+--
+-- -- SELECT product_name AS "My Great Products"
+-- -- FROM products;
+--
+-- -- SELECT product_id, product_name, category_name
+-- -- FROM products
+-- -- INNER JOIN categories ON products.category_id = categories.category_id;
+--
+-- select * from testproducts
+-- inner join categories ON testproducts.category_id = categories.category_id;
+-- -- select * from testproducts
+-- -- left join public.products p on testproducts.product_name = p.product_name and testproducts.category_id = p.category_id;
+--
+-- SELECT testproduct_id, product_name, category_name
+-- FROM testproducts
+-- LEFT OUTER JOIN  categories ON testproducts.category_id = categories.category_id;
+--
+
+--
+-- SELECT * from testproducts
+-- right outer join categories on testproducts.category_id = categories.category_id;
+
+
+-- SELECT testproduct_id, product_name, category_name
+-- FROM testproducts
+-- FULL JOIN categories ON testproducts.category_id = categories.category_id;
+
+-- SELECT testproduct_id, product_name, category_name
+-- FROM testproducts
+-- CROSS JOIN categories;
+
+-- SELECT product_id, product_name
+-- FROM products
+-- UNION
+-- SELECT testproduct_id, product_name
+-- FROM testproducts
+-- ORDER BY product_id;
+
+-- SELECT product_id
+-- FROM products
+-- UNION
+-- SELECT testproduct_id
+-- FROM testproducts
+-- ORDER BY product_id;
+
+-- SELECT COUNT(customer_id), country
+-- FROM customers
+-- GROUP BY country;
+
+
+-- SELECT customers.customer_name, COUNT(orders.order_id)
+-- FROM orders
+-- LEFT JOIN customers ON orders.customer_id = customers.customer_id
+-- GROUP BY customer_name;
+
+-- SELECT COUNT(customer_id), country
+-- FROM customers
+-- GROUP BY country
+-- HAVING COUNT(customer_id) > 5;
+
+--
+-- SELECT order_id, SUM(order_details.quantity * products.price)
+-- FROM order_details
+-- LEFT JOIN products on products.product_id = order_details.product_id
+-- GROUP BY order_id
+-- HAVING SUM(order_details.quantity * products.price) > 400.00;
+
+-- SELECT customers.customer_name,
+--        SUM(order_details.quantity * products.price)
+-- FROM order_details
+--          INNER JOIN products ON order_details.product_id = products.product_id
+--          INNER JOIN orders ON order_details.order_id = orders.order_id
+--          INNER JOIN customers ON orders.customer_id = customers.customer_id
+-- GROUP BY customers.customer_id, customers.customer_name
+-- HAVING SUM(order_details.quantity * products.price) >= 1000
+
+
+
+-- SELECT customers.customer_name
+-- FROM customers
+-- WHERE EXISTS (
+--     SELECT order_id
+--     FROM orders
+--     WHERE customer_id = customers.customer_id
+-- );
+
+-- SELECT COUNT(customer_id), country
+-- FROM customers
+-- GROUP BY country;
+
+-- SELECT customers.customer_name, COUNT(orders.order_id)
+-- FROM orders
+-- LEFT JOIN customers ON orders.customer_id = customers.customer_id
+-- GROUP BY customer_name;
+
+--
+-- SELECT COUNT(customer_id), country
+-- FROM customers
+-- GROUP BY country;
+-- HAVING COUNT(customer_id) > 5;
+
+-- SELECT customers.customer_name
+-- FROM customers
+-- WHERE NOT EXISTS (
+--     SELECT order_id
+--     FROM orders
+--     WHERE customer_id = customers.customer_id
+-- );
+
+
+-- SELECT product_name
+-- FROM products
+-- WHERE product_id = ANY (
+--     SELECT product_id
+--     FROM order_details
+--     WHERE quantity > 120
+-- );
+
+
+-- SELECT product_name
+-- FROM products
+-- WHERE product_id = ALL (
+--     SELECT product_id
+--     FROM order_details
+--     WHERE quantity > 10
+-- );
+
+
+-- SELECT product_name,
+--        CASE
+--            WHEN price < 10 THEN 'Low price product'
+--            WHEN price > 50 THEN 'High price product'
+--            ELSE
+--                'Normal product'
+--            END
+-- FROM products;
+
+
+--
+-- CREATE TABLE department (
+--                             dept_id SERIAL PRIMARY KEY,          -- PRIMARY KEY
+--                             dept_name VARCHAR(50) UNIQUE NOT NULL -- UNIQUE + NOT NULL
+-- );
+-- drop table if exists employee;
+-- CREATE TABLE employee (
+--                           emp_id SERIAL PRIMARY KEY,                 -- PRIMARY KEY
+--                           emp_name VARCHAR(100) NOT NULL,             -- NOT NULL
+--                           email VARCHAR(100) UNIQUE,                  -- UNIQUE
+--                           salary NUMERIC(10,2) CHECK (salary > 0),    -- CHECK
+--                           dept_id INT,                                -- FOREIGN KEY
+--
+--                           CONSTRAINT fk_department
+--                               FOREIGN KEY (dept_id)
+--                                   REFERENCES department(dept_id)
+--                                   ON DELETE SET NULL
+--                                   ON UPDATE CASCADE
+-- );
+
+
+
+
+--
+--
+-- INSERT INTO department (dept_name)
+-- VALUES ('IT'), ('HR');
+-- INSERT INTO employee (emp_name, email, salary, dept_id)
+-- VALUES ('Vivek', 'vivek@gmail.com', 50000, 1);
+
+--
+-- CREATE TABLE employee (
+--                           emp_id SERIAL PRIMARY KEY,
+--                           emp_name VARCHAR(100),
+--                           email VARCHAR(100),
+--                           salary NUMERIC(10,2),
+--                           skills TEXT[],
+--                           address TEXT
+-- );
+
+-- CREATE INDEX idx_employee_salary
+--     ON employee(salary);
+--
+-- DROP INDEX idx_employee_salary;
+--
+-- CREATE INDEX idx_salary_btree
+--     ON employee(salary);
+-- --
+-- EXPLAIN ANALYZE
+-- SELECT * FROM employee WHERE salary = 50000;
+
+-- -- CREATE INDEX idx_salary ON employee(salary);
+--
+-- EXPLAIN ANALYZE
+-- SELECT * FROM employee WHERE salary = 50000;
+
+-- CREATE TABLE accounts (
+--                           acc_id SERIAL PRIMARY KEY,
+--                           name VARCHAR(50),
+--                           balance INT
+-- );
+--
+-- BEGIN;
+--
+-- UPDATE accounts SET balance = balance - 1000 WHERE acc_id = 1;
+-- UPDATE accounts SET balance = balance + 1000 WHERE acc_id = 2;
+--
+-- COMMIT;   -- save changes
+--
+-- BEGIN;
+-- UPDATE accounts SET balance = balance - 5000 WHERE acc_id = 1;
+-- ROLLBACK;   -- undo changes
+
+-- BEGIN;
+--
+-- UPDATE accounts SET balance = balance - 1000 WHERE acc_id = 1;
+--
+-- SAVEPOINT sp1;
+--
+-- UPDATE accounts SET balance = balance - 5000 WHERE acc_id = 1;
+--
+-- ROLLBACK TO sp1;   -- undo last update only
+--
+-- COMMIT;
+
+-- BEGIN ISOLATION LEVEL READ COMMITTED;
+-- SELECT * FROM accounts
+-- WHERE acc_id = 1
+--     FOR UPDATE;
+
+-- WITH high_salary AS (
+--     SELECT emp_name, salary
+--     FROM employee
+--     WHERE salary > 50000
+-- )
+-- SELECT * FROM high_salary;
+
+-- SELECT emp_name, salary,
+--        ROW_NUMBER() OVER (ORDER BY salary DESC)
+-- FROM employee;
