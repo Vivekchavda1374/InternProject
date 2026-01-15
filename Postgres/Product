@@ -1,98 +1,109 @@
+CREATE TABLE companies (
+                           company_id SERIAL PRIMARY KEY,
+                           company_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE branches (
+                          branch_id SERIAL PRIMARY KEY,
+                          company_id INT NOT NULL
+                              REFERENCES companies(company_id) ON DELETE CASCADE,
+                          branch_name VARCHAR(255) NOT NULL
+);
+
+
 CREATE TABLE user_front (
-company_id BIGINT PRIMARY KEY,
-company_name VARCHAR(255) NOT NULL,
-branch_id BIGINT UNIQUE ,
-branch_name VARCHAR(255) NOT NULL,
-parent_company_id BIGINT,
-FOREIGN KEY (parent_company_id) REFERENCES user_front(company_id)
-);
-
-CREATE TABLE contact (
-contact_id BIGINT PRIMARY KEY,
-contact_type VARCHAR(50),
-whatsapp_no VARCHAR(20),
-pan_no VARCHAR(20)
-);
-
-CREATE TABLE contact_address (
-contact_address_id BIGINT PRIMARY KEY,
-contact_id BIGINT NOT NULL,
-address_line_1 VARCHAR(255),
-address_line_2 VARCHAR(255),
-city_name VARCHAR(100),
-state_name VARCHAR(100),
-country_name VARCHAR(100),
-mob_no VARCHAR(20),
-FOREIGN KEY (contact_id) REFERENCES contact(contact_id)
+                            user_id SERIAL PRIMARY KEY,
+                            company_id INT NOT NULL
+                                REFERENCES companies(company_id)  ON DELETE CASCADE,
+                            branch_id INT NOT NULL
+                                REFERENCES branches(branch_id) ON DELETE CASCADE
 );
 
 CREATE TABLE user_role (
-role_id BIGINT PRIMARY KEY,
-role_name VARCHAR(100) NOT NULL
+                           role_id SERIAL PRIMARY KEY,
+                           role_name VARCHAR(50) UNIQUE NOT NULL
 );
 
 CREATE TABLE user_role_new (
-user_role_new_id BIGINT PRIMARY KEY,
-role_id BIGINT NOT NULL,
-company_id BIGINT NOT NULL,
-branch_id BIGINT,
-FOREIGN KEY (role_id) REFERENCES user_role(role_id),
-FOREIGN KEY (company_id) REFERENCES user_front(company_id),
-FOREIGN KEY (branch_id) REFERENCES user_front(branch_id)
+                               assignment_id SERIAL PRIMARY KEY,
+                               user_id INT NOT NULL
+                                   REFERENCES user_front(user_id) ON DELETE CASCADE,
+                               role_id INT NOT NULL
+                                   REFERENCES user_role(role_id),
+                               company_id INT NOT NULL
+                                   REFERENCES companies(company_id),
+                               branch_id INT NOT NULL
+                                   REFERENCES branches(branch_id),
+                               UNIQUE (user_id, role_id)
+);
+
+CREATE TABLE contact (
+                         contact_id SERIAL PRIMARY KEY,
+                         contact_type VARCHAR(20) ,
+                         whatsapp_no VARCHAR(20),
+                         pan_no VARCHAR(20)
+);
+
+CREATE TABLE contact_address (
+                                 contact_address_id SERIAL PRIMARY KEY,
+                                 contact_id INT NOT NULL
+                                     REFERENCES contact(contact_id) ON DELETE CASCADE,
+                                 address_line_1 TEXT NOT NULL,
+                                 address_line_2 TEXT,
+                                 city_name VARCHAR(100),
+                                 state_name VARCHAR(100),
+                                 country_name VARCHAR(100),
+                                 mob_no VARCHAR(20)
 );
 
 CREATE TABLE product (
-product_id BIGINT PRIMARY KEY,
-product_name VARCHAR(255) NOT NULL,
-company_id BIGINT NOT NULL,
-item_code VARCHAR(100),
-FOREIGN KEY (company_id) REFERENCES user_front(company_id)
+                         product_id SERIAL PRIMARY KEY,
+                         product_name VARCHAR(255) NOT NULL,
+                         company_id INT NOT NULL
+                             REFERENCES companies(company_id),
+                         item_code VARCHAR(50) UNIQUE
 );
 
+
 CREATE TABLE sales (
-sales_id BIGINT PRIMARY KEY,
-contact_id BIGINT NOT NULL,
-company_id BIGINT NOT NULL,
-branch_id BIGINT NOT NULL,
-prefix VARCHAR(20),
-sales_no BIGINT,
-total_amount DECIMAL(12,2),
-sales_date DATE,
-FOREIGN KEY (contact_id) REFERENCES contact(contact_id),
-FOREIGN KEY (company_id) REFERENCES user_front(company_id),
-FOREIGN KEY (branch_id) REFERENCES user_front(branch_id)
+                       sales_id SERIAL PRIMARY KEY,
+                       contact_id INT REFERENCES contact(contact_id),
+                       company_id INT NOT NULL REFERENCES companies(company_id),
+                       branch_id INT NOT NULL REFERENCES branches(branch_id),
+                       prefix VARCHAR(10),
+                       sales_no VARCHAR(50) NOT NULL,
+                       total_amount DECIMAL(15,2),
+                       sales_date DATE DEFAULT CURRENT_DATE,
+                       UNIQUE (company_id, branch_id, sales_no)
 );
 
 CREATE TABLE purchase (
-purchase_id BIGINT PRIMARY KEY,
-contact_id BIGINT NOT NULL,
-company_id BIGINT NOT NULL,
-branch_id BIGINT NOT NULL,
-prefix VARCHAR(20),
-purchase_no BIGINT,
-total_amount DECIMAL(12,2),
-purchase_date DATE,
-FOREIGN KEY (contact_id) REFERENCES contact(contact_id),
-FOREIGN KEY (company_id) REFERENCES user_front(company_id),
-FOREIGN KEY (branch_id) REFERENCES user_front(branch_id)
+                          purchase_id SERIAL PRIMARY KEY,
+                          contact_id INT REFERENCES contact(contact_id),
+                          company_id INT NOT NULL REFERENCES companies(company_id),
+                          branch_id INT NOT NULL REFERENCES branches(branch_id),
+                          prefix VARCHAR(10),
+                          purchase_no VARCHAR(50) NOT NULL,
+                          total_amount DECIMAL(15,2),
+                          purchase_date DATE DEFAULT CURRENT_DATE,
+                          UNIQUE (company_id, branch_id, purchase_no)
 );
 
 CREATE TABLE sales_item (
-sales_item_id BIGINT PRIMARY KEY,
-sales_id BIGINT NOT NULL,
-product_id BIGINT NOT NULL,
-quantity INT,
-selling_price DECIMAL(12,2),
-FOREIGN KEY (sales_id) REFERENCES sales(sales_id),
-FOREIGN KEY (product_id) REFERENCES product(product_id)
+                            sales_item_id SERIAL PRIMARY KEY,
+                            sales_id INT REFERENCES sales(sales_id) ON DELETE CASCADE,
+                            product_id INT REFERENCES product(product_id),
+                            quantity INT CHECK (quantity > 0),
+                            selling_price DECIMAL(15,2)
 );
 
 CREATE TABLE purchase_item (
-purchase_item_id BIGINT PRIMARY KEY,
-purchase_id BIGINT NOT NULL,
-product_id BIGINT NOT NULL,
-quantity INT,
-purchase_price DECIMAL(12,2),
-FOREIGN KEY (purchase_id) REFERENCES purchase(purchase_id),
-FOREIGN KEY (product_id) REFERENCES product(product_id)
+                               purchase_item_id SERIAL PRIMARY KEY,
+                               purchase_id INT REFERENCES purchase(purchase_id) ON DELETE CASCADE,
+                               product_id INT REFERENCES product(product_id),
+                               quantity INT CHECK (quantity > 0),
+                               purchase_price DECIMAL(15,2)
 );
+
+
+
