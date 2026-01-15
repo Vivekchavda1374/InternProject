@@ -1,0 +1,98 @@
+CREATE TABLE user_front (
+company_id BIGINT PRIMARY KEY,
+company_name VARCHAR(255) NOT NULL,
+branch_id BIGINT UNIQUE ,
+branch_name VARCHAR(255) NOT NULL,
+parent_company_id BIGINT,
+FOREIGN KEY (parent_company_id) REFERENCES user_front(company_id)
+);
+
+CREATE TABLE contact (
+contact_id BIGINT PRIMARY KEY,
+contact_type VARCHAR(50),
+whatsapp_no VARCHAR(20),
+pan_no VARCHAR(20)
+);
+
+CREATE TABLE contact_address (
+contact_address_id BIGINT PRIMARY KEY,
+contact_id BIGINT NOT NULL,
+address_line_1 VARCHAR(255),
+address_line_2 VARCHAR(255),
+city_name VARCHAR(100),
+state_name VARCHAR(100),
+country_name VARCHAR(100),
+mob_no VARCHAR(20),
+FOREIGN KEY (contact_id) REFERENCES contact(contact_id)
+);
+
+CREATE TABLE user_role (
+role_id BIGINT PRIMARY KEY,
+role_name VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE user_role_new (
+user_role_new_id BIGINT PRIMARY KEY,
+role_id BIGINT NOT NULL,
+company_id BIGINT NOT NULL,
+branch_id BIGINT,
+FOREIGN KEY (role_id) REFERENCES user_role(role_id),
+FOREIGN KEY (company_id) REFERENCES user_front(company_id),
+FOREIGN KEY (branch_id) REFERENCES user_front(branch_id)
+);
+
+CREATE TABLE product (
+product_id BIGINT PRIMARY KEY,
+product_name VARCHAR(255) NOT NULL,
+company_id BIGINT NOT NULL,
+item_code VARCHAR(100),
+FOREIGN KEY (company_id) REFERENCES user_front(company_id)
+);
+
+CREATE TABLE sales (
+sales_id BIGINT PRIMARY KEY,
+contact_id BIGINT NOT NULL,
+company_id BIGINT NOT NULL,
+branch_id BIGINT NOT NULL,
+prefix VARCHAR(20),
+sales_no BIGINT,
+total_amount DECIMAL(12,2),
+sales_date DATE,
+FOREIGN KEY (contact_id) REFERENCES contact(contact_id),
+FOREIGN KEY (company_id) REFERENCES user_front(company_id),
+FOREIGN KEY (branch_id) REFERENCES user_front(branch_id)
+);
+
+CREATE TABLE purchase (
+purchase_id BIGINT PRIMARY KEY,
+contact_id BIGINT NOT NULL,
+company_id BIGINT NOT NULL,
+branch_id BIGINT NOT NULL,
+prefix VARCHAR(20),
+purchase_no BIGINT,
+total_amount DECIMAL(12,2),
+purchase_date DATE,
+FOREIGN KEY (contact_id) REFERENCES contact(contact_id),
+FOREIGN KEY (company_id) REFERENCES user_front(company_id),
+FOREIGN KEY (branch_id) REFERENCES user_front(branch_id)
+);
+
+CREATE TABLE sales_item (
+sales_item_id BIGINT PRIMARY KEY,
+sales_id BIGINT NOT NULL,
+product_id BIGINT NOT NULL,
+quantity INT,
+selling_price DECIMAL(12,2),
+FOREIGN KEY (sales_id) REFERENCES sales(sales_id),
+FOREIGN KEY (product_id) REFERENCES product(product_id)
+);
+
+CREATE TABLE purchase_item (
+purchase_item_id BIGINT PRIMARY KEY,
+purchase_id BIGINT NOT NULL,
+product_id BIGINT NOT NULL,
+quantity INT,
+purchase_price DECIMAL(12,2),
+FOREIGN KEY (purchase_id) REFERENCES purchase(purchase_id),
+FOREIGN KEY (product_id) REFERENCES product(product_id)
+);
