@@ -55,6 +55,18 @@ public class ProductSrvcs { // service layer for product operations
         return productRepo.findByCategoryIgnoreCase(category);
     }
 
+    public Product updateProduct(Long id, Product productDetails) {
+        Product product = productRepo.findById(id).orElse(null);
+        if (product != null) {
+            product.setProductName(productDetails.getProductName());
+            product.setPrice(productDetails.getPrice());
+            product.setQuantity(productDetails.getQuantity());
+            product.setCategory(productDetails.getCategory());
+            return productRepo.save(product);
+        }
+        return null;
+    }
+
     public void deleteById(Long id) {
         productRepo.deleteById(id);
     }

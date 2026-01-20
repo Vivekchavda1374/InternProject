@@ -10,11 +10,14 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+@NoArgsConstructor
 @AllArgsConstructor
+
 @Setter
 @Getter
 @Entity
-@Table(name = "product")
+@Table(name = "product_project")
 public class Product {
 
     @Id
@@ -24,26 +27,21 @@ public class Product {
 
     @Column(name = "product_name")
     private String productName;
-
+    @Column(name = "price")
     private double price;
-
+    @Column(name = "quantity")
     private double quantity;
-
+    @Column(name = "category")
     private String category;
-
-    public Product() {
-    }
-
-    public Product(String productName, double price, double quantity, String category, Long productId) {
-        this.productName = productName;
-        this.price = price;
-        this.quantity = quantity;
-        this.category = category;
-        this.productId = productId;
-    }
 
     @Override
     public String toString() {
-        return "Product{productName='" + productName + '\'' + ", price=" + price + ", quantity=" + quantity + ", category='" + category + '\'' + ", productId=" + productId + '}';
+        return "Product{" +
+                "productId=" + productId +
+                ", productName='" + productName + '\'' +
+                ", price=" + price +
+                ", quantity=" + quantity +
+                ", category='" + category + '\'' +
+                '}';
     }
 }

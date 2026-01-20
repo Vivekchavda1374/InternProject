@@ -1,0 +1,199 @@
+package com.vasyerp.rolebasedsystem.service;
+
+import com.vasyerp.rolebasedsystem.dto.*;
+import com.vasyerp.rolebasedsystem.model.UserFront;
+import com.vasyerp.rolebasedsystem.model.UserRole;
+import com.vasyerp.rolebasedsystem.model.UserRoleNew;
+import com.vasyerp.rolebasedsystem.repository.UserFrontRepository;
+import com.vasyerp.rolebasedsystem.repository.UserRoleNewRepository;
+import com.vasyerp.rolebasedsystem.repository.UserRoleRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@Transactional
+public class UserFrontService {
+
+    private final UserFrontRepository userFrontRepository;
+    private final UserRoleRepository userRoleRepository;
+    private final UserRoleNewRepository userRoleNewRepository;
+
+    public UserFrontService(UserFrontRepository userFrontRepository,
+                            UserRoleRepository userRoleRepository,
+                            UserRoleNewRepository userRoleNewRepository) {
+        this.userFrontRepository = userFrontRepository;
+        this.userRoleRepository = userRoleRepository;
+        this.userRoleNewRepository = userRoleNewRepository;
+    }
+    private UserFrontDTO convertToDTO(UserFront userFront) {
+        return new UserFrontDTO(
+                userFront.getUserFrontId(),
+                userFront.getName(),
+                userFront.getParentCompanyId()
+        );
+    }
+
+    public UserFrontDTO createCompany(CreateUserFrontRequest request) {
+        if (request.getName() == null || request.getName().trim().isEmpty()) {
+            throw new RuntimeException("Company name cannot be empty");
+        }
+
+        if (request.getParentCompanyId() != null) {
+            throw new RuntimeException("Company cannot have a parent company");
+        }
+
+        UserFront company = new UserFront();
+        company.setName(request.getName());
+        company.setParentCompanyId(null);
+
+        UserFront savedCompany = userFrontRepository.save(company);
+        return convertToDTO(savedCompany);
+    }
+
+    public UserFrontDTO createBranch(CreateUserFrontRequest request) {
+        if (request.getName() == null || request.getName().trim().isEmpty()) {
+            throw new RuntimeException("Branch name cannot be empty");
+        }
+
+        if (request.getParentCompanyId() == null) {
+            throw new RuntimeException("Parent company ID is required for branch");
+        }
+        UserFront parentCompany = userFrontRepository
+                .findById(request.getParentCompanyId())
+                .orElseThrow(() -> new RuntimeException("Parent company not found"));
+
+        if (parentCompany.getParentCompanyId() != null) {
+            throw new RuntimeException("Cannot create branch under a branch. Parent must be a company");
+        }
+
+        UserFront branch = new UserFront();
+        branch.setName(request.getName());
+        branch.setParentCompanyId(request.getParentCompanyId());
+
+        UserFront savedBranch = userFrontRepository.save(branch);
+        return convertToDTO(savedBranch);
+    }
+    public List<UserFrontDTO> getAllCompanies() {
+        return userFrontRepository.findAllCompanies()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    public List<UserFrontDTO> getBranchesByCompany(Long companyId) {
+        userFrontRepository
+                .findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found"));
+
+        return userFrontRepository.findBranchesByCompany(companyId)
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    public UserFrontDTO getUserFrontById(Long userFrontId) {
+        UserFront userFront = userFrontRepository
+                .findById(userFrontId)
+                .orElseThrow(() -> new RuntimeException("User/Company/Branch not found"));
+        return convertToDTO(userFront);
+    }
+    public UserFrontDTO updateUserFront(Long userFrontId, UpdateUserFrontRequest request) {
+        if (request.getName() == null || request.getName().trim().isEmpty()) {
+            throw new RuntimeException("Name cannot be empty");
+        }
+
+        UserFront userFront = userFrontRepository
+                .findById(userFrontId)
+                .orElseThrow(() -> new RuntimeException("User/Company/Branch not found"));
+
+        userFront.setName(request.getName());
+        UserFront updatedUserFront = userFrontRepository.save(userFront);
+        return convertToDTO(updatedUserFront);
+    }
+    public void deleteUserFront(Long userFrontId) {
+        UserFront userFront = userFrontRepository
+                .findById(userFrontId)
+                .orElseThrow(() -> new RuntimeException("User/Company/Branch not found"));
+
+        if (userFront.getParentCompanyId() == null) {
+            boolean hasBranches = userFrontRepository.existsByParentCompanyId(userFrontId);
+            if (hasBranches) {
+                throw new RuntimeException("Cannot delete company with existing branches");
+            }
+        }
+        List<UserRoleNew> roleAssignments = userRoleNewRepository
+                .findRolesByUserFrontId(userFrontId)
+                .stream()
+                .map(roleId -> userRoleNewRepository
+                        .findByUserFrontIdAndRoleId(userFrontId, roleId)
+                        .orElse(null))
+                .toList();
+
+        roleAssignments.forEach(role -> {
+            if (role != null) {
+                userRoleNewRepository.delete(role);
+            }
+        });
+
+        userFrontRepository.delete(userFront);
+    }
+    public UserRoleDTO assignRoleToUser(AssignUserRoleRequest request) {
+        UserFront userFront = userFrontRepository
+                .findById(request.getUserFrontId())
+                .orElseThrow(() -> new RuntimeException("User/Company/Branch not found"));
+        UserRole role = userRoleRepository
+                .findById(request.getRoleId())
+                .orElseThrow(() -> new RuntimeException("Role not found"));
+
+        if (userRoleNewRepository.
+                findByUserFrontIdAndRoleId(request.getUserFrontId(), request.getRoleId()).isPresent())
+        {
+            throw new RuntimeException("Role is already assigned to this user");
+        }
+
+        UserRoleNew userRole = new UserRoleNew();
+        userRole.setUserFrontId(request.getUserFrontId());
+        userRole.setRoleId(request.getRoleId());
+
+        userRoleNewRepository.save(userRole);
+
+        return getUserRoles(request.getUserFrontId());
+    }
+    public UserRoleDTO revokeRoleFromUser(Long userFrontId, Long roleId) {
+        userFrontRepository
+                .findById(userFrontId)
+                .orElseThrow(() -> new RuntimeException("User/Company/Branch not found"));
+        UserRoleNew userRole = userRoleNewRepository
+                .findByUserFrontIdAndRoleId(userFrontId, roleId)
+                .orElseThrow(() -> new RuntimeException("Role is not assigned to this user"));
+
+        userRoleNewRepository.delete(userRole);
+
+        return getUserRoles(userFrontId);
+    }
+    public UserRoleDTO getUserRoles(Long userFrontId) {
+        UserFront userFront = userFrontRepository.findById(userFrontId)
+                .orElseThrow(() -> new RuntimeException("User/Company/Branch not found"));
+
+        List<Long> roleIds = userRoleNewRepository.findRolesByUserFrontId(userFrontId);
+        List<String> roleNames = roleIds.stream()
+                .map(roleId -> userRoleRepository.findById(roleId)
+                        .map(UserRole::getRoleName)
+                        .orElse("Unknown"))
+                .collect(Collectors.toList());
+
+        UserRoleDTO userRoleDTO = new UserRoleDTO();
+        userRoleDTO.setUserFrontId(userFrontId);
+        userRoleDTO.setUserName(userFront.getName());
+        userRoleDTO.setRoleIds(roleIds);
+        userRoleDTO.setRoleNames(roleNames);
+
+        return userRoleDTO;
+    }
+
+    public List<UserRole> getAllRoles() {
+        return userRoleRepository.findAll();
+    }
+
+}

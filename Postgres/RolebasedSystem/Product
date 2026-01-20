@@ -1,3 +1,35 @@
+Design and create a relational database schema to manage users, companies, branches, contacts, sales, and purchases with proper foreign key relationships.
+Create user_front Table
+This table will store company and branch information.
+A company can have multiple branches
+Branch must reference its parent company
+Create contact and contact_address Tables
+Stores customer or Supplier details.
+One contact can have multiple addresses
+Uses contact_id as a foreign key in  contact_address
+Columns (Contact) :
+contact_id, contact_type, whatsapp_no, pan_no
+Contact_addres : contact_address_id, contact_id FK, address_line_1,address_line_2, city_name,state_name,country_name,mob_no
+Create user_role Table
+where all roles where defined.
+Create user_role_new Table
+assigned role to branch and company.
+Create ProductTable.
+Columns :
+product_id PK, product_name,  company_id FK, item_code.
+Create sales and purchase Tables
+Linked to contact (customer)
+Linked to company and branch
+Columns (Sales) :
+sales_id, contact_id, company_id, branch_id, prefix, sales_no, total_amount, sales_date
+Column (Purchase) : 
+purchase_id, contact_id, company_id, branch_id, prefix, purchase_no, total_amount, purchase_date
+Create sales_item and purchase_item Tables
+Column (sales_item) :
+sales_item_id, sales_id FK, product_id, quantity, selling_price.
+Column (purchase_item) :
+purchase_item_id, purchase_id FK, product_id, quantity, purchase_price.
+drop table user_front;
 CREATE TABLE user_front (
                             user_front_id BIGSERIAL PRIMARY KEY,
                             name VARCHAR(150) NOT NULL,
