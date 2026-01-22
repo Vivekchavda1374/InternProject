@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>jQuery Basic Practice</title>
+
+    <!-- jQuery CDN -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+
+        .box {
+            width: 200px;
+            height: 100px;
+            background-color: lightblue;
+            text-align: center;
+            line-height: 100px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            margin: 5px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        .important {
+            font-weight: bold;
+            font-size: xx-large;
+        }
+
+        .blue {
+            color: blue;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2 id="title">jQuery Practice Website</h2>
+
+<div class="box" id="myBox">Hello Box</div>
+
+<button id="hideBtn">Hide Box</button>
+<button id="showBtn">Show Box</button>
+<button id="colorBtn">Change Color</button>
+
+<p id="text">This text will change using jQuery.</p>
+<button id="textBtn">Change Text</button>
+
+<ul id="list">
+    <li>Item 1</li>
+    <li>Item 2</li>
+</ul>
+<button id="addItem">Add Item</button>
+
+<script>
+    // $(document).ready(function () {
+    //
+    //     $('#hideBtn').click(function () {
+    //         $('#myBox').hide();
+    //     });
+    //
+    //     $('#showBtn').click(function () {
+    //         $('#myBox').show();
+    //     });
+    //
+    //     $('#colorBtn').click(function () {
+    //         $('#myBox').css('background-color', 'orange');
+    //     });
+    //
+    //     $('#textBtn').click(function () {
+    //         $('#text').text('Text changed using jQuery!');
+    //     });
+    //
+    //     $('#addItem').click(function () {
+    //         $('#list').append('<li>New Item</li>');
+    //     });
+    //
+    // });
+
+
+    // $("button").click(function(){
+    //     $(this).hide();
+    // });
+
+    // $("button").dblclick(function(){
+    //     $(this).hide();
+    // });
+
+    // $("button").hover(function () {
+    //     console.warn(("mouseleave"));
+    // })
+
+    // $("button").blur(function(){
+    //     $(this).css("background-color", "#ffffff");
+    // });
+
+    // $("input").blur(function(){
+    //     $(this).css("background-color", "#ffffff");
+    // });
+    // $("button").on("click",function (){
+    //     $(this).hide();
+    // })
+
+    // $("button").on({
+    //     mouseenter: function(){
+    //         $(this).css("background-color", "lightgray");
+    //     },
+    //     mouseleave: function(){
+    //         $(this).css("background-color", "lightblue");
+    //     },
+    //     click: function(){
+    //         $(this).css("background-color", "yellow");
+    //     }
+    // });
+
+    // $("#hideBtn").click(function(){
+    //     $("button").hide(1000);
+    // });
+    //
+    // $("#myBox").click(function(){
+    //     $("button").show(1000);
+    // });
+
+    // $("button").click(function(){
+    //     $("p").toggle(2000);
+    // });
+    // $("button").click(function(){
+    //     $("#hideBtn").fadeOut();
+    //     $("#showBtn").fadeOut("slow");
+    //     $("#colorBtn").fadeOut(1000);
+    // });
+    // $("#myBox").click(function (){
+    //     $("#hideBtn").fadeIn();
+    //     $("#showBtn").fadeIn("slow");
+    //     $("#colorBtn").fadeIn(1000);
+    // });
+    // $("#myBox").click(function(){
+    //     $("#hideBtn").slideDown();
+    //     // $("#showBtn").fadeToggle("slow");
+    //     // $("#colorBtn").fadeToggle(3000);
+    // });
+
+    // $("#colorBtn").click(function(){
+    //     $("#myBox").animate({right: '250px'});
+    // });
+
+    // $("button").click(function(){
+    //     $("#myBox").animate({
+    //         left: '250px',
+    //         opacity: '0.5',
+    //         height: '150px',
+    //         width: '150px'
+    //     });
+    // });
+
+    // $("button").click(function(){
+    //     $("#myBox").animate({
+    //         left: '250px',
+    //         height: '+=150px',
+    //         width: '+=150px'
+    //     });
+    // });
+
+
+    // $("button").click(function(){
+    //     var div = $("#myBox");
+    //     div.animate({height: '300px', opacity: '0.4'}, "slow");
+    //     div.animate({width: '300px', opacity: '0.8'}, "slow");
+    //     div.animate({height: '100px', opacity: '0.4'}, "slow");
+    //     div.animate({width: '100px', opacity: '0.8'}, "slow");
+    // });
+
+    // $("button").click(function(){
+    //     $("p").hide("slow", function(){
+    //         alert("The paragraph is now hidden");
+    //     });
+    // });
+    // $("#myBox").css("color", "red")
+    //     .slideUp(2000)
+    //     .slideDown(2000);
+    // $("button").click(function(){
+    //     $("p").addClass("blue");
+    //     $("div").addClass("important");
+    // });
+
+    // $(document).ready(function(){
+    //     $("button").click(function(){
+    //         $("#myBox").load("demo_test.txt");
+    //     });
+    // });
+
+    $("button").click(function(){
+        $("#myBox").load("demo_test.txt", function(responseTxt, statusTxt, xhr){
+            if(statusTxt == "success")
+                alert("External content loaded successfully!");
+            if(statusTxt == "error")
+                alert("Error: " + xhr.status + ": " + xhr.statusText);
+        });
+    });
+
+
+
+
+
+
+
+
+
+
+</script>
+
+</body>
+</html>
