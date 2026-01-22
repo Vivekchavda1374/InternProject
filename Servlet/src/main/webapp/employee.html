@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Employee DataTable</title>
+    <link rel="stylesheet"
+          href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+</head>
+
+<body>
+<h2>Employee List</h2>
+
+<table id="empTable" class="display">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Salary</th>
+        <th>Address</th>
+    </tr>
+    </thead>
+</table>
+
+<script>
+    $(document).ready(function () {
+        $('#empTable').DataTable({
+            ajax: 'employee-data',
+            columns: [
+                { data: 'emp_id' },
+                { data: 'emp_name' },
+                { data: 'email' },
+                { data: 'salary' },
+                { data: 'address' }
+            ]
+        });
+    });
+</script>
+
+</body>
+</html>
