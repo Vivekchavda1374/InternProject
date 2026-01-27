@@ -20,6 +20,12 @@ public class UserFront {
     @Column(name = "name", length = 150, nullable = false)
     private String name;
 
+    @Column(name = "username", length = 50, nullable = false, unique = true)
+    private String username;
+
+    @Column(name = "password", length = 255, nullable = false)
+    private String password;
+
     @Column(name = "parent_company_id")
     private Long parentCompanyId;
 }

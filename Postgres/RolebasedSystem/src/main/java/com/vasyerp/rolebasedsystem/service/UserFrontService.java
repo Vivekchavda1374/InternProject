@@ -10,6 +10,7 @@ import com.vasyerp.rolebasedsystem.repository.UserRoleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -47,6 +48,8 @@ public class UserFrontService {
 
         UserFront company = new UserFront();
         company.setName(request.getName());
+        company.setUsername(request.getName().toLowerCase().replaceAll("\\s+", ""));
+        company.setPassword("admin123"); // Default password
         company.setParentCompanyId(null);
 
         UserFront savedCompany = userFrontRepository.save(company);
@@ -71,13 +74,15 @@ public class UserFrontService {
 
         UserFront branch = new UserFront();
         branch.setName(request.getName());
+        branch.setUsername(request.getName().toLowerCase().replaceAll("\\s+", "") + "_user");
+        branch.setPassword("user123"); // Default password
         branch.setParentCompanyId(request.getParentCompanyId());
 
         UserFront savedBranch = userFrontRepository.save(branch);
         return convertToDTO(savedBranch);
     }
     public List<UserFrontDTO> getAllCompanies() {
-        return userFrontRepository.findAllCompanies()
+        return userFrontRepository.findAll()
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -91,6 +96,32 @@ public class UserFrontService {
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+    }
+    
+    public List<UserFrontDTO> getCompaniesByUser(Long userId) {
+        UserFront currentUser = userFrontRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // Default admin sees all
+        if ("admin".equals(currentUser.getUsername())) {
+            return getAllCompanies();
+        }
+
+        // Regular companies see only themselves and their branches
+        if (currentUser.getParentCompanyId() == null) {
+            List<UserFrontDTO> result = new ArrayList<>();
+            result.add(convertToDTO(currentUser));
+            result.addAll(getBranchesByCompany(currentUser.getUserFrontId()));
+            return result;
+        }
+
+        // Branches see their parent company and sibling branches
+        List<UserFrontDTO> result = new ArrayList<>();
+        UserFront parentCompany = userFrontRepository.findById(currentUser.getParentCompanyId())
+                .orElseThrow(() -> new RuntimeException("Parent company not found"));
+        result.add(convertToDTO(parentCompany));
+        result.addAll(getBranchesByCompany(currentUser.getParentCompanyId()));
+        return result;
     }
     public UserFrontDTO getUserFrontById(Long userFrontId) {
         UserFront userFront = userFrontRepository

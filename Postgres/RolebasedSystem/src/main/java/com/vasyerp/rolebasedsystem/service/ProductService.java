@@ -4,8 +4,9 @@ import com.vasyerp.rolebasedsystem.dto.CreateProductRequest;
 import com.vasyerp.rolebasedsystem.dto.ProductDTO;
 import com.vasyerp.rolebasedsystem.dto.UpdateProductRequest;
 import com.vasyerp.rolebasedsystem.model.Product;
+import com.vasyerp.rolebasedsystem.model.UserFront;
 import com.vasyerp.rolebasedsystem.repository.ProductRepository;
-import com.vasyerp.rolebasedsystem.repository.UserRoleNewRepository;
+import com.vasyerp.rolebasedsystem.repository.UserFrontRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,11 +18,11 @@ import java.util.stream.Collectors;
 public class ProductService {
 
     private final ProductRepository productRepository;
-    private final UserRoleNewRepository userRoleNewRepository;
+    private final UserFrontRepository userFrontRepository;
 
-    public ProductService(ProductRepository productRepository, UserRoleNewRepository userRoleNewRepository) {
+    public ProductService(ProductRepository productRepository, UserFrontRepository userFrontRepository) {
         this.productRepository = productRepository;
-        this.userRoleNewRepository = userRoleNewRepository;
+        this.userFrontRepository = userFrontRepository;
     }
 
     public ProductDTO createProduct(Long userId, Long companyId, CreateProductRequest request) {
@@ -29,54 +30,36 @@ public class ProductService {
             throw new RuntimeException("User does not have permission to create products for this company");
         }
 
+        UserFront currentUser = userFrontRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Determine the actual company ID for the product
+        Long actualCompanyId;
+        if (currentUser.getParentCompanyId() == null) {
+            // Company user - use their own ID
+            actualCompanyId = currentUser.getUserFrontId();
+        } else {
+            // Branch user - use parent company ID
+            actualCompanyId = currentUser.getParentCompanyId();
+        }
+
         Product product = new Product();
         product.setProductName(request.getProductName());
         product.setItemCode(request.getItemCode());
-        product.setCompanyId(companyId);
+        product.setCompanyId(actualCompanyId);
 
         Product savedProduct = productRepository.save(product);
         return convertToDTO(savedProduct);
     }
 
-    public List<ProductDTO> getProductsByCompany(Long userId, Long companyId) {
-        if (!userBelongsToCompany(userId, companyId)) {
-            throw new RuntimeException("User does not have access to this company");
-        }
-
-        List<Product> products = productRepository.findByCompanyId(companyId);
-        return products.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-    }
-
-    public ProductDTO getProductById(Long userId, Long productId) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
-
-        if (!userBelongsToCompany(userId, product.getCompanyId())) {
-            throw new RuntimeException("User does not have access to this product");
-        }
-
-        return convertToDTO(product);
-    }
-
-    public List<ProductDTO> searchProductsByName(Long userId, Long companyId, String searchTerm) {
-        if (!userBelongsToCompany(userId, companyId)) {
-            throw new RuntimeException("User does not have access to this company");
-        }
-
-        List<Product> products = productRepository.searchProductsByName(companyId, searchTerm);
-        return products.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-    }
-
     public ProductDTO updateProduct(Long userId, Long productId, UpdateProductRequest request) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
-         if (!hasProductUpdatePermission(userId, product.getCompanyId())) {
+        
+        if (!hasProductUpdatePermission(userId, product.getCompanyId())) {
             throw new RuntimeException("User does not have permission to update products for this company");
         }
+        
         if (request.getProductName() != null && !request.getProductName().isEmpty()) {
             product.setProductName(request.getProductName());
         }
@@ -99,11 +82,48 @@ public class ProductService {
         productRepository.deleteById(productId);
     }
 
-    public List<ProductDTO> getProductsByBranch(Long userId, Long companyId, Long branchId) {
-        if (!userHasAccessToCompanyBranch(userId, companyId, branchId)) {
-            throw new RuntimeException("User does not have access to this branch");
+    public List<ProductDTO> getProductsByCompany(Long userId, Long companyId) {
+        UserFront currentUser = userFrontRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Default admin can see all products
+        if ("admin".equals(currentUser.getUsername())) {
+            List<Product> products = productRepository.findAll();
+            return products.stream().map(this::convertToDTO).collect(Collectors.toList());
         }
 
+        // Regular companies can only see their own products
+        if (currentUser.getParentCompanyId() == null) {
+            List<Product> products = productRepository.findByCompanyId(currentUser.getUserFrontId());
+            return products.stream().map(this::convertToDTO).collect(Collectors.toList());
+        }
+
+        // Branches can see their parent company's products
+        List<Product> products = productRepository.findByCompanyId(currentUser.getParentCompanyId());
+        return products.stream().map(this::convertToDTO).collect(Collectors.toList());
+    }
+
+    public List<ProductDTO> getAllProducts() {
+        List<Product> products = productRepository.findAll();
+        return products.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public ProductDTO getProductById(Long userId, Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+        return convertToDTO(product);
+    }
+
+    public List<ProductDTO> searchProductsByName(Long userId, Long companyId, String searchTerm) {
+        List<Product> products = productRepository.searchProductsByName(companyId, searchTerm);
+        return products.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<ProductDTO> getProductsByBranch(Long userId, Long companyId, Long branchId) {
         List<Product> products = productRepository.findByCompanyId(companyId);
         return products.stream()
                 .map(this::convertToDTO)
@@ -111,30 +131,27 @@ public class ProductService {
     }
 
     private boolean hasProductCreatePermission(Long userId, Long companyId) {
-        return userRoleNewRepository.hasRole(userId, "ADMIN") || 
-               userRoleNewRepository.hasRole(userId, "MANAGER");
+        return isCompany(userId) || isBranch(userId);
     }
 
     private boolean hasProductUpdatePermission(Long userId, Long companyId) {
-        return userRoleNewRepository.hasRole(userId, "ADMIN") || 
-               userRoleNewRepository.hasRole(userId, "MANAGER");
+        return isCompany(userId) || isBranch(userId);
     }
 
     private boolean hasProductDeletePermission(Long userId, Long companyId) {
-        return userRoleNewRepository.hasRole(userId, "ADMIN");
+        return isCompany(userId);
     }
 
-    private boolean userBelongsToCompany(Long userId, Long companyId) {
-        List<Long> userCompanies = getUserCompanies(userId);
-        return userCompanies.contains(companyId);
+    private boolean isCompany(Long userId) {
+        return userFrontRepository.findById(userId)
+                .map(user -> user.getParentCompanyId() == null)
+                .orElse(false);
     }
 
-    private List<Long> getUserCompanies(Long userId) {
-       return List.of(userId);
-    }
-
-    private boolean userHasAccessToCompanyBranch(Long userId, Long companyId, Long branchId) {
-        return userBelongsToCompany(userId, companyId);
+    private boolean isBranch(Long userId) {
+        return userFrontRepository.findById(userId)
+                .map(user -> user.getParentCompanyId() != null)
+                .orElse(false);
     }
 
     private ProductDTO convertToDTO(Product product) {

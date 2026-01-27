@@ -31,7 +31,7 @@ public class ProductController {
             ProductDTO product = productService.createProduct(userId, companyId, request);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(new ApiResponse<>(true, "Product created successfully", product));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
@@ -43,7 +43,7 @@ public class ProductController {
         try {
             List<ProductDTO> products = productService.getProductsByCompany(userId, companyId);
             return ResponseEntity.ok(new ApiResponse<>(true, "Products retrieved successfully", products));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
@@ -55,7 +55,7 @@ public class ProductController {
         try {
             ProductDTO product = productService.getProductById(userId, productId);
             return ResponseEntity.ok(new ApiResponse<>(true, "Product retrieved successfully", product));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
@@ -69,7 +69,7 @@ public class ProductController {
         try {
             List<ProductDTO> products = productService.searchProductsByName(userId, companyId, searchTerm);
             return ResponseEntity.ok(new ApiResponse<>(true, "Products found", products));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
@@ -83,7 +83,7 @@ public class ProductController {
         try {
             ProductDTO product = productService.updateProduct(userId, productId, request);
             return ResponseEntity.ok(new ApiResponse<>(true, "Product updated successfully", product));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
@@ -95,7 +95,7 @@ public class ProductController {
         try {
             productService.deleteProduct(userId, productId);
             return ResponseEntity.ok(new ApiResponse<>(true, "Product deleted successfully"));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
@@ -109,10 +109,9 @@ public class ProductController {
         try {
             List<ProductDTO> products = productService.getProductsByBranch(userId, companyId, branchId);
             return ResponseEntity.ok(new ApiResponse<>(true, "Branch products retrieved successfully", products));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
     }
 }
-//show roles availabe , how to assign role

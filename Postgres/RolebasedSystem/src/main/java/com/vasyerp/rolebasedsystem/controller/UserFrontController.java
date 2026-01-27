@@ -26,17 +26,29 @@ public class UserFrontController {
             UserFrontDTO company = userFrontService.createCompany(request);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(new ApiResponse<>(true, "Company created successfully", company));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
     }
+    @GetMapping("/companies/{userId}")
+    public ResponseEntity<ApiResponse<List<UserFrontDTO>>> getCompaniesByUser(
+            @PathVariable Long userId) {
+        try {
+            List<UserFrontDTO> companies = userFrontService.getCompaniesByUser(userId);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Companies retrieved successfully", companies));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
     @GetMapping("/companies")
     public ResponseEntity<ApiResponse<List<UserFrontDTO>>> getAllCompanies() {
         try {
             List<UserFrontDTO> companies = userFrontService.getAllCompanies();
             return ResponseEntity.ok(new ApiResponse<>(true, "Companies retrieved successfully", companies));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
@@ -49,8 +61,21 @@ public class UserFrontController {
             UserFrontDTO branch = userFrontService.createBranch(request);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(new ApiResponse<>(true, "Branch created successfully", branch));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @GetMapping("/branches")
+    public ResponseEntity<ApiResponse<List<UserFrontDTO>>> getAllBranches() {
+        try {
+            List<UserFrontDTO> branches = userFrontService.getAllCompanies().stream()
+                    .filter(company -> company.getParentCompanyId() != null)
+                    .toList();
+            return ResponseEntity.ok(new ApiResponse<>(true, "All branches retrieved successfully", branches));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
     }
@@ -61,7 +86,23 @@ public class UserFrontController {
         try {
             List<UserFrontDTO> branches = userFrontService.getBranchesByCompany(companyId);
             return ResponseEntity.ok(new ApiResponse<>(true, "Branches retrieved successfully", branches));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @GetMapping("/branches/{companyId}/search")
+    public ResponseEntity<ApiResponse<List<UserFrontDTO>>> searchBranchesByName(
+            @PathVariable Long companyId,
+            @RequestParam String searchTerm) {
+        try {
+            List<UserFrontDTO> branches = userFrontService.getBranchesByCompany(companyId);
+            List<UserFrontDTO> filtered = branches.stream()
+                    .filter(b -> b.getName().toLowerCase().contains(searchTerm.toLowerCase()))
+                    .toList();
+            return ResponseEntity.ok(new ApiResponse<>(true, "Branches found", filtered));
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
@@ -72,7 +113,7 @@ public class UserFrontController {
         try {
             List<UserRole> roles = userFrontService.getAllRoles();
             return ResponseEntity.ok(new ApiResponse<>(true, "All roles retrieved successfully", roles));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
@@ -84,7 +125,7 @@ public class UserFrontController {
         try {
             UserFrontDTO userFront = userFrontService.getUserFrontById(userFrontId);
             return ResponseEntity.ok(new ApiResponse<>(true, "User/Company/Branch retrieved successfully", userFront));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
@@ -97,7 +138,7 @@ public class UserFrontController {
         try {
             UserFrontDTO updatedUserFront = userFrontService.updateUserFront(userFrontId, request);
             return ResponseEntity.ok(new ApiResponse<>(true, "User/Company/Branch updated successfully", updatedUserFront));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
@@ -109,7 +150,7 @@ public class UserFrontController {
         try {
             userFrontService.deleteUserFront(userFrontId);
             return ResponseEntity.ok(new ApiResponse<>(true, "User/Company/Branch deleted successfully", null));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
@@ -122,7 +163,7 @@ public class UserFrontController {
             UserRoleDTO userRole = userFrontService.assignRoleToUser(request);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(new ApiResponse<>(true, "Role assigned successfully", userRole));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
@@ -135,7 +176,7 @@ public class UserFrontController {
         try {
             UserRoleDTO userRole = userFrontService.revokeRoleFromUser(userFrontId, roleId);
             return ResponseEntity.ok(new ApiResponse<>(true, "Role revoked successfully", userRole));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
@@ -147,7 +188,7 @@ public class UserFrontController {
         try {
             UserRoleDTO userRoles = userFrontService.getUserRoles(userFrontId);
             return ResponseEntity.ok(new ApiResponse<>(true, "Roles retrieved successfully", userRoles));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
