@@ -4,6 +4,7 @@ import com.vasyerp.rolebasedsystem.dto.*;
 import com.vasyerp.rolebasedsystem.model.UserFront;
 import com.vasyerp.rolebasedsystem.model.UserRole;
 import com.vasyerp.rolebasedsystem.model.UserRoleNew;
+import com.vasyerp.rolebasedsystem.model.UserFrontAddress;
 import com.vasyerp.rolebasedsystem.repository.UserFrontRepository;
 import com.vasyerp.rolebasedsystem.repository.UserRoleNewRepository;
 import com.vasyerp.rolebasedsystem.repository.UserRoleRepository;
@@ -25,35 +26,45 @@ public class UserFrontService {
     private final BCryptPasswordEncoder passwordEncoder;
 
     public UserFrontService(UserFrontRepository userFrontRepository,
-                            UserRoleRepository userRoleRepository,
-                            UserRoleNewRepository userRoleNewRepository) {
+            UserRoleRepository userRoleRepository,
+            UserRoleNewRepository userRoleNewRepository) {
         this.userFrontRepository = userFrontRepository;
         this.userRoleRepository = userRoleRepository;
         this.userRoleNewRepository = userRoleNewRepository;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
+
     private UserFrontDTO convertToDTO(UserFront userFront) {
+        UserFrontAddress address = userFront.getUserFrontAddress();
+
         return new UserFrontDTO(
                 userFront.getUserFrontId(),
                 userFront.getName(),
-                userFront.getUsername(),
                 userFront.getParentCompanyId(),
                 userFront.getGstNo(),
-                userFront.getPhoneNo()
-        );
+                userFront.getPhoneNo(),
+                address != null ? address.getAddressLine1() : null,
+                address != null ? address.getAddressLine2() : null,
+                address != null ? address.getCity() : null,
+                address != null ? address.getState() : null,
+                address != null ? address.getCountry() : null);
     }
 
     public UserFrontDTO createCompany(Long userId, CreateUserFrontRequest request) {
         // Only default admin can create companies
         UserFront currentUser = userFrontRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        if (!"admin".equals(currentUser.getUsername())) {
+
+        if (!"admin".equals(currentUser.getName())) {
             throw new RuntimeException("Only default admin can create companies");
         }
-        
+
         if (request.getName() == null || request.getName().trim().isEmpty()) {
             throw new RuntimeException("Company name cannot be empty");
+        }
+
+        if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+            throw new RuntimeException("Password cannot be empty");
         }
 
         if (request.getParentCompanyId() != null) {
@@ -62,19 +73,34 @@ public class UserFrontService {
 
         UserFront company = new UserFront();
         company.setName(request.getName());
-        company.setUsername(request.getUsername() != null ? request.getUsername() : request.getName().toLowerCase().replaceAll("\\s+", ""));
-        company.setPassword(request.getPassword() != null ? passwordEncoder.encode(request.getPassword()) : passwordEncoder.encode("admin123"));
+        company.setPassword(passwordEncoder.encode(request.getPassword()));
         company.setParentCompanyId(null);
         company.setGstNo(request.getGstNo());
         company.setPhoneNo(request.getPhoneNo());
 
+        UserFrontAddress address = new UserFrontAddress();
+        address.setName(company.getName());
+        address.setAddressLine1(request.getAddressLine1());
+        address.setAddressLine2(request.getAddressLine2());
+        address.setCity(request.getCity());
+        address.setState(request.getState());
+        address.setCountry(request.getCountry());
+
+        address.setUserFront(company);
+        company.setUserFrontAddress(address);
+
         UserFront savedCompany = userFrontRepository.save(company);
+
         return convertToDTO(savedCompany);
     }
 
     public UserFrontDTO createBranch(CreateUserFrontRequest request) {
         if (request.getName() == null || request.getName().trim().isEmpty()) {
             throw new RuntimeException("Branch name cannot be empty");
+        }
+
+        if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+            throw new RuntimeException("Password cannot be empty");
         }
 
         if (request.getParentCompanyId() == null) {
@@ -90,21 +116,34 @@ public class UserFrontService {
 
         UserFront branch = new UserFront();
         branch.setName(request.getName());
-        branch.setUsername(request.getUsername() != null ? request.getUsername() : request.getName().toLowerCase().replaceAll("\\s+", "") + "_user");
-        branch.setPassword(request.getPassword() != null ? passwordEncoder.encode(request.getPassword()) : passwordEncoder.encode("user123"));
+        branch.setPassword(passwordEncoder.encode(request.getPassword()));
         branch.setParentCompanyId(request.getParentCompanyId());
         branch.setGstNo(request.getGstNo());
         branch.setPhoneNo(request.getPhoneNo());
 
+        UserFrontAddress address = new UserFrontAddress();
+        address.setName(branch.getName());
+        address.setAddressLine1(request.getAddressLine1());
+        address.setAddressLine2(request.getAddressLine2());
+        address.setCity(request.getCity());
+        address.setState(request.getState());
+        address.setCountry(request.getCountry());
+
+        address.setUserFront(branch);
+        branch.setUserFrontAddress(address);
+
         UserFront savedBranch = userFrontRepository.save(branch);
+
         return convertToDTO(savedBranch);
     }
+
     public List<UserFrontDTO> getAllCompanies() {
         return userFrontRepository.findAll()
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
+
     public List<UserFrontDTO> getBranchesByCompany(Long companyId) {
         userFrontRepository
                 .findById(companyId)
@@ -115,13 +154,13 @@ public class UserFrontService {
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
-    
+
     public List<UserFrontDTO> getCompaniesByUser(Long userId) {
         UserFront currentUser = userFrontRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
+
         // Default admin sees all
-        if ("admin".equals(currentUser.getUsername())) {
+        if ("admin".equals(currentUser.getName())) {
             return getAllCompanies();
         }
 
@@ -141,12 +180,14 @@ public class UserFrontService {
         result.addAll(getBranchesByCompany(currentUser.getParentCompanyId()));
         return result;
     }
+
     public UserFrontDTO getUserFrontById(Long userFrontId) {
         UserFront userFront = userFrontRepository
                 .findById(userFrontId)
                 .orElseThrow(() -> new RuntimeException("User/Company/Branch not found"));
         return convertToDTO(userFront);
     }
+
     public UserFrontDTO updateUserFront(Long userFrontId, UpdateUserFrontRequest request) {
         if (request.getName() == null || request.getName().trim().isEmpty()) {
             throw new RuntimeException("Name cannot be empty");
@@ -156,10 +197,14 @@ public class UserFrontService {
                 .findById(userFrontId)
                 .orElseThrow(() -> new RuntimeException("User/Company/Branch not found"));
 
+        if ("admin".equals(userFront.getName()) && !"admin".equals(request.getName())) {
+            throw new RuntimeException("Cannot change name of default admin");
+        }
         userFront.setName(request.getName());
         UserFront updatedUserFront = userFrontRepository.save(userFront);
         return convertToDTO(updatedUserFront);
     }
+
     public void deleteUserFront(Long userFrontId) {
         UserFront userFront = userFrontRepository
                 .findById(userFrontId)
@@ -187,6 +232,7 @@ public class UserFrontService {
 
         userFrontRepository.delete(userFront);
     }
+
     public UserRoleDTO assignRoleToUser(AssignUserRoleRequest request) {
         UserFront userFront = userFrontRepository
                 .findById(request.getUserFrontId())
@@ -195,9 +241,8 @@ public class UserFrontService {
                 .findById(request.getRoleId())
                 .orElseThrow(() -> new RuntimeException("Role not found"));
 
-        if (userRoleNewRepository.
-                findByUserFrontIdAndRoleId(request.getUserFrontId(), request.getRoleId()).isPresent())
-        {
+        if (userRoleNewRepository.findByUserFrontIdAndRoleId(request.getUserFrontId(), request.getRoleId())
+                .isPresent()) {
             throw new RuntimeException("Role is already assigned to this user");
         }
 
@@ -209,6 +254,7 @@ public class UserFrontService {
 
         return getUserRoles(request.getUserFrontId());
     }
+
     public UserRoleDTO revokeRoleFromUser(Long userFrontId, Long roleId) {
         userFrontRepository
                 .findById(userFrontId)
@@ -221,6 +267,7 @@ public class UserFrontService {
 
         return getUserRoles(userFrontId);
     }
+
     public UserRoleDTO getUserRoles(Long userFrontId) {
         UserFront userFront = userFrontRepository.findById(userFrontId)
                 .orElseThrow(() -> new RuntimeException("User/Company/Branch not found"));

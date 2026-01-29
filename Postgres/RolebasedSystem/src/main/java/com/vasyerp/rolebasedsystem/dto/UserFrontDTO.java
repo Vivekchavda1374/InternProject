@@ -10,8 +10,13 @@ import lombok.NoArgsConstructor;
 public class UserFrontDTO {
     private Long userFrontId;
     private String name;
-    private String username;
+
     private Long parentCompanyId;
     private String gstNo;
     private String phoneNo;
+    private String addressLine1;
+    private String addressLine2;
+    private String city;
+    private String state;
+    private String country;
 }

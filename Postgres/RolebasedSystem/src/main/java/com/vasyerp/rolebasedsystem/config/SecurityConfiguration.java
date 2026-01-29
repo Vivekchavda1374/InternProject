@@ -27,9 +27,9 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/user-front/**").permitAll()
                         .requestMatchers("/api/products/**").permitAll()
                         .requestMatchers("/static/**").permitAll()
-                        .anyRequest().permitAll()
-                )
-                .httpBasic(basic -> {});
+                        .anyRequest().permitAll())
+                .httpBasic(basic -> {
+                });
 
         return http.build();
     }
@@ -38,7 +38,7 @@ public class SecurityConfiguration {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE","OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setMaxAge(3600L);
 
@@ -46,4 +46,5 @@ public class SecurityConfiguration {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
+
 }

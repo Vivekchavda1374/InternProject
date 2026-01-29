@@ -10,18 +10,22 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateUserFrontRequest {
-    
+
     @NonNull()
     private String name;
-    
-    private String username;
-    
+
     private String password;
-    
+
     private String gstNo;
-    
+
     private String phoneNo;
-    
+
+    private String addressLine1;
+    private String addressLine2;
+    private String city;
+    private String state;
+    private String country;
+
     @JsonProperty("parentCompanyId")
     private Long parentCompanyId;
 }

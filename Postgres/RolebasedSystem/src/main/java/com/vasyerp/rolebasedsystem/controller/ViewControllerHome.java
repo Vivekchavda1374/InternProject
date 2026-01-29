@@ -30,9 +30,14 @@ public class ViewControllerHome {
     }
 
     @GetMapping("/products")
-    public String products(Model model) {
+    public String products(Model model, jakarta.servlet.http.HttpSession session) {
         try {
-            model.addAttribute("products", productService.getAllProducts());
+            Long userId = (Long) session.getAttribute("userId");
+            if (userId != null) {
+                model.addAttribute("products", productService.getProductsByCompany(userId, userId));
+            } else {
+                model.addAttribute("products", List.of());
+            }
         } catch (Exception e) {
             model.addAttribute("products", List.of());
             model.addAttribute("error", "Error loading products: " + e.getMessage());

@@ -59,11 +59,11 @@ public class ProductService {
     public ProductDTO updateProduct(Long userId, Long productId, UpdateProductRequest request) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
-        
+
         if (!hasProductUpdatePermission(userId, product.getCompanyId())) {
             throw new RuntimeException("User does not have permission to update products for this company");
         }
-        
+
         if (request.getProductName() != null && !request.getProductName().isEmpty()) {
             product.setProductName(request.getProductName());
         }
@@ -98,24 +98,45 @@ public class ProductService {
         productRepository.deleteById(productId);
     }
 
-    public List<ProductDTO> getProductsByCompany(Long userId, Long companyId) {
+    public List<ProductDTO> getProductsByCompany(Long userId, Long targetCompanyId) {
         UserFront currentUser = userFrontRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Default admin can see all products
-        if ("admin".equals(currentUser.getUsername())) {
-            List<Product> products = productRepository.findAll();
-            return products.stream().map(this::convertToDTO).collect(Collectors.toList());
+        boolean isAllowed = false;
+
+        // 1. Admin can see everything
+        if ("admin".equals(currentUser.getName())) {
+            isAllowed = true;
+        }
+        // 2. Company can see itself and its branches
+        else if (currentUser.getParentCompanyId() == null) {
+            if (targetCompanyId.equals(currentUser.getUserFrontId())) {
+                isAllowed = true;
+            } else {
+                UserFront targetUser = userFrontRepository.findById(targetCompanyId).orElse(null);
+                if (targetUser != null && currentUser.getUserFrontId().equals(targetUser.getParentCompanyId())) {
+                    isAllowed = true;
+                }
+            }
+        }
+        // 3. Branch can only see itself
+        else {
+            if (targetCompanyId.equals(currentUser.getUserFrontId())) {
+                isAllowed = true;
+            }
         }
 
-        // Regular companies can only see their own products
-        if (currentUser.getParentCompanyId() == null) {
-            List<Product> products = productRepository.findByCompanyId(currentUser.getUserFrontId());
-            return products.stream().map(this::convertToDTO).collect(Collectors.toList());
+        if (!isAllowed) {
+            // Alternatively, return empty list or throw exception.
+            // For filter, empty list is safer than 403 error for UX, but exception is more
+            // secure.
+            // Keeping mostly consistent with previous error handling logic.
+            // But let's verify if the user is trying to see "All" vs "One".
+            // The method name implies "Get products OF company X".
+            throw new RuntimeException("Access denied to view products of this company/branch");
         }
 
-        // Branches can see their parent company's products
-        List<Product> products = productRepository.findByCompanyId(currentUser.getParentCompanyId());
+        List<Product> products = productRepository.findByCompanyId(targetCompanyId);
         return products.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
@@ -179,7 +200,6 @@ public class ProductService {
                 product.getMrp(),
                 product.getSellingPrice(),
                 product.getDescription(),
-                product.getStockQuantity()
-        );
+                product.getStockQuantity());
     }
 }

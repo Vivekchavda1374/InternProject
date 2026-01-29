@@ -22,5 +22,4 @@ public interface UserFrontRepository extends JpaRepository<UserFront, Long> {
 
     boolean existsByParentCompanyId(Long parentCompanyId);
 
-    UserFront findByUsername(String username);
 }

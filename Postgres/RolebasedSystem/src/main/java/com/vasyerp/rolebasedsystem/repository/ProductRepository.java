@@ -24,5 +24,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p WHERE p.companyId = :companyId AND LOWER(p.productName) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
     List<Product> searchProductsByName(@Param("companyId") Long companyId, @Param("searchTerm") String searchTerm);
 
+    List<Product> findByCompanyIdIn(List<Long> companyIds);
+
     boolean existsByProductIdAndCompanyId(Long productId, Long companyId);
 }

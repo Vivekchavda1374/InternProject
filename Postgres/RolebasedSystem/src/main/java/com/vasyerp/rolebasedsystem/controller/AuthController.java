@@ -24,13 +24,13 @@ public class AuthController {
 
     @PostMapping("/api/login")
     @ResponseBody
-    public ResponseEntity<ApiResponse<UserFront>> login(@RequestParam String username, 
-                                                       @RequestParam String password, 
-                                                       HttpSession session) {
-        UserFront user = userFrontRepository.findByUsername(username);
+    public ResponseEntity<ApiResponse<UserFront>> login(@RequestParam String name,
+            @RequestParam String password,
+            HttpSession session) {
+        UserFront user = userFrontRepository.findByName(name).orElse(null);
         if (user != null && user.getPassword().equals(password)) {
             session.setAttribute("userId", user.getUserFrontId());
-            session.setAttribute("username", user.getUsername());
+            session.setAttribute("name", user.getName());
             session.setAttribute("isAdmin", user.getParentCompanyId() == null);
             return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", user));
         }
@@ -49,12 +49,12 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Object>> getSession(HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
         if (userId != null) {
-            return ResponseEntity.ok(new ApiResponse<>(true, "Session active", 
-                new Object() {
-                    public Long userId = (Long) session.getAttribute("userId");
-                    public String username = (String) session.getAttribute("username");
-                    public Boolean isAdmin = (Boolean) session.getAttribute("isAdmin");
-                }));
+            return ResponseEntity.ok(new ApiResponse<>(true, "Session active",
+                    new Object() {
+                        public Long userId = (Long) session.getAttribute("userId");
+                        public String name = (String) session.getAttribute("name");
+                        public Boolean isAdmin = (Boolean) session.getAttribute("isAdmin");
+                    }));
         }
         return ResponseEntity.badRequest().body(new ApiResponse<>(false, "No active session", null));
     }
