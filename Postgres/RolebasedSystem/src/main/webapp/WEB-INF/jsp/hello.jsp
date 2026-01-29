@@ -73,11 +73,7 @@
                             <i class="fas fa-box"></i><br>Products
                         </a>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="/roles" class="btn btn-warning btn-lg w-100">
-                            <i class="fas fa-user-tag"></i><br>Roles
-                        </a>
-                    </div>
+
                     <div class="col-md-3 mb-3">
                         <a href="/branches" class="btn btn-info btn-lg w-100">
                             <i class="fas fa-code-branch"></i><br>Branches

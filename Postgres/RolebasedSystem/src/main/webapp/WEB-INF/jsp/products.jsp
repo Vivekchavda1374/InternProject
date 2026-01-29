@@ -43,6 +43,9 @@
                                     <th>ID</th>
                                     <th>Name</th>
                                     <th>Item Code</th>
+                                    <th>MRP</th>
+                                    <th>Selling Price</th>
+                                    <th>Stock</th>
                                     <th>Company</th>
                                     <th>Actions</th>
                                 </tr>
@@ -53,6 +56,9 @@
                                         <td>${product.productId}</td>
                                         <td>${product.productName}</td>
                                         <td>${product.itemCode}</td>
+                                        <td>₹${product.mrp}</td>
+                                        <td>₹${product.sellingPrice}</td>
+                                        <td>${product.stockQuantity}</td>
                                         <td>${product.companyId}</td>
                                         <td>
                                             <button class="btn btn-sm btn-warning" onclick="editProduct(${product.productId})">
@@ -89,6 +95,28 @@
                             <label class="form-label">Item Code</label>
                             <input type="text" class="form-control" name="itemCode">
                         </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">MRP (₹)</label>
+                                    <input type="number" step="0.01" class="form-control" name="mrp">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Selling Price (₹)</label>
+                                    <input type="number" step="0.01" class="form-control" name="sellingPrice">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Stock Quantity</label>
+                            <input type="number" step="0.01" class="form-control" name="stockQuantity">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" name="description" rows="3"></textarea>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Company</label>
                             <select class="form-select" name="companyId" required>
@@ -104,6 +132,57 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-success" onclick="createProduct()">Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div class="modal fade" id="editProductModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editProductForm">
+                        <input type="hidden" name="productId">
+                        <div class="mb-3">
+                            <label class="form-label">Product Name</label>
+                            <input type="text" class="form-control" name="productName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Item Code</label>
+                            <input type="text" class="form-control" name="itemCode">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">MRP (₹)</label>
+                                    <input type="number" step="0.01" class="form-control" name="mrp">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Selling Price (₹)</label>
+                                    <input type="number" step="0.01" class="form-control" name="sellingPrice">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Stock Quantity</label>
+                            <input type="number" step="0.01" class="form-control" name="stockQuantity">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" name="description" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning" onclick="updateProduct()">Update</button>
                 </div>
             </div>
         </div>
@@ -172,7 +251,11 @@
                         },
                         data: JSON.stringify({
                             productName: data.productName,
-                            itemCode: data.itemCode
+                            itemCode: data.itemCode,
+                            mrp: data.mrp ? parseFloat(data.mrp) : null,
+                            sellingPrice: data.sellingPrice ? parseFloat(data.sellingPrice) : null,
+                            stockQuantity: data.stockQuantity ? parseFloat(data.stockQuantity) : null,
+                            description: data.description
                         }),
                         success: function() {
                             $('#createProductModal').modal('hide');
@@ -209,6 +292,9 @@
                                         product.productId,
                                         product.productName,
                                         product.itemCode,
+                                        '₹' + (product.mrp || '0'),
+                                        '₹' + (product.sellingPrice || '0'),
+                                        product.stockQuantity || '0',
                                         product.companyId,
                                         '<button class="btn btn-sm btn-warning" onclick="editProduct(' + product.productId + ')"><i class="fas fa-edit"></i></button> ' + deleteBtn
                                     ]);
@@ -251,7 +337,68 @@
         }
         
         function editProduct(id) {
-            alert('Edit functionality can be implemented with a modal form similar to create');
+            $.get('/api/session', function(sessionResponse) {
+                if (sessionResponse.success) {
+                    const userId = sessionResponse.data.userId;
+                    $.ajax({
+                        url: '/api/products/' + id,
+                        method: 'GET',
+                        headers: {
+                            'userId': userId
+                        },
+                        success: function(response) {
+                            const product = response.data;
+                            $('#editProductForm input[name="productId"]').val(product.productId);
+                            $('#editProductForm input[name="productName"]').val(product.productName);
+                            $('#editProductForm input[name="itemCode"]').val(product.itemCode);
+                            $('#editProductForm input[name="mrp"]').val(product.mrp);
+                            $('#editProductForm input[name="sellingPrice"]').val(product.sellingPrice);
+                            $('#editProductForm input[name="stockQuantity"]').val(product.stockQuantity);
+                            $('#editProductForm textarea[name="description"]').val(product.description);
+                            $('#editProductModal').modal('show');
+                        },
+                        error: function() {
+                            alert('Error loading product details');
+                        }
+                    });
+                }
+            });
+        }
+        
+        function updateProduct() {
+            const formData = new FormData($('#editProductForm')[0]);
+            const data = Object.fromEntries(formData);
+            const productId = data.productId;
+            
+            $.get('/api/session', function(sessionResponse) {
+                if (sessionResponse.success) {
+                    const userId = sessionResponse.data.userId;
+                    $.ajax({
+                        url: '/api/products/' + productId,
+                        method: 'PUT',
+                        headers: {
+                            'userId': userId,
+                            'Content-Type': 'application/json'
+                        },
+                        data: JSON.stringify({
+                            productName: data.productName,
+                            itemCode: data.itemCode,
+                            mrp: data.mrp ? parseFloat(data.mrp) : null,
+                            sellingPrice: data.sellingPrice ? parseFloat(data.sellingPrice) : null,
+                            stockQuantity: data.stockQuantity ? parseFloat(data.stockQuantity) : null,
+                            description: data.description
+                        }),
+                        success: function() {
+                            $('#editProductModal').modal('hide');
+                            location.reload();
+                            alert('Product updated successfully!');
+                        },
+                        error: function(xhr) {
+                            alert('Error updating product: ' + xhr.responseText);
+                        }
+                    });
+                }
+            });
         }
     </script>
 </body>

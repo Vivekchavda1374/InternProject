@@ -67,12 +67,19 @@
         });
         
         function loadCompanies() {
-            $.get('/api/user-front/companies', function(response) {
-                const select = $('#companySelect');
-                select.empty().append('<option value="">Select Company</option>');
-                response.data.filter(item => !item.parentCompanyId).forEach(company => {
-                    select.append('<option value="' + company.userFrontId + '">' + company.name + '</option>');
-                });
+            $.get('/api/session', function(sessionResponse) {
+                if (sessionResponse.success) {
+                    const userId = sessionResponse.data.userId;
+                    $.get('/api/user-front/companies/' + userId, function(response) {
+                        const select = $('#companySelect');
+                        select.empty().append('<option value="">Select Company</option>');
+                        response.data.filter(item => !item.parentCompanyId).forEach(company => {
+                            select.append('<option value="' + company.userFrontId + '">' + company.name + '</option>');
+                        });
+                    });
+                } else {
+                    window.location.href = '/login';
+                }
             });
         }
         

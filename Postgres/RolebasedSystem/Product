@@ -129,3 +129,28 @@ CREATE TABLE purchase_item (
                                CONSTRAINT fk_purchase_item_product FOREIGN KEY (product_id) REFERENCES product(product_id)
 );
 
+ALTER TABLE user_front
+ADD COLUMN gst_no VARCHAR(20),
+ADD COLUMN phone_no VARCHAR(15);
+
+
+CREATE TABLE user_front_address (
+    user_front_address_id BIGSERIAL PRIMARY KEY,
+    user_front_id INT NOT NULL,
+    name VARCHAR(150),
+    address_line_1 VARCHAR(255),
+    address_line_2 VARCHAR(255),
+    city VARCHAR(100),
+    state VARCHAR(100),
+    country VARCHAR(100),
+    CONSTRAINT fk_user_front_address
+        FOREIGN KEY (user_front_id)
+        REFERENCES user_front(user_front_id)
+        ON DELETE CASCADE
+);
+
+ALTER TABLE product
+ADD COLUMN mrp NUMERIC(10,2),
+ADD COLUMN selling_price NUMERIC(10,2),
+ADD COLUMN description TEXT,
+ADD COLUMN stock_quantity FLOAT8;

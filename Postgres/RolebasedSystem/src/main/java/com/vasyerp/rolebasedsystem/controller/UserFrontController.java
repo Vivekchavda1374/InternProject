@@ -21,9 +21,10 @@ public class UserFrontController {
     }
     @PostMapping("/company/create")
     public ResponseEntity<ApiResponse<UserFrontDTO>> createCompany(
+            @RequestHeader("userId") Long userId,
             @RequestBody CreateUserFrontRequest request) {
         try {
-            UserFrontDTO company = userFrontService.createCompany(request);
+            UserFrontDTO company = userFrontService.createCompany(userId, request);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(new ApiResponse<>(true, "Company created successfully", company));
         } catch (Exception e) {

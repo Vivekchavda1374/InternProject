@@ -28,4 +28,10 @@ public class UserFront {
 
     @Column(name = "parent_company_id")
     private Long parentCompanyId;
+
+    @Column(name = "gst_no", length = 20)
+    private String gstNo;
+
+    @Column(name = "phone_no", length = 15)
+    private String phoneNo;
 }

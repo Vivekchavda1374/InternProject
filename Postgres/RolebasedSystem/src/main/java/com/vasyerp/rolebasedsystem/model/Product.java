@@ -25,4 +25,16 @@ public class Product {
 
     @Column(name = "item_code", length = 50)
     private String itemCode;
+
+    @Column(name = "mrp")
+    private Double mrp;
+
+    @Column(name = "selling_price")
+    private Double sellingPrice;
+
+    @Column(name = "description")
+    private String description;
+
+    @Column(name = "stock_quantity")
+    private Double stockQuantity;
 }

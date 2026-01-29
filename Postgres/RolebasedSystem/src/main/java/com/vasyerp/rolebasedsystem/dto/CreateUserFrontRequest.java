@@ -14,6 +14,14 @@ public class CreateUserFrontRequest {
     @NonNull()
     private String name;
     
+    private String username;
+    
+    private String password;
+    
+    private String gstNo;
+    
+    private String phoneNo;
+    
     @JsonProperty("parentCompanyId")
     private Long parentCompanyId;
 }

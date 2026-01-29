@@ -13,4 +13,8 @@ public class ProductDTO {
     private String productName;
     private Long companyId;
     private String itemCode;
+    private Double mrp;
+    private Double sellingPrice;
+    private String description;
+    private Double stockQuantity;
 }

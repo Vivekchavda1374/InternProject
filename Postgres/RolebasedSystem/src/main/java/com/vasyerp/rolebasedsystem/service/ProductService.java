@@ -47,6 +47,10 @@ public class ProductService {
         product.setProductName(request.getProductName());
         product.setItemCode(request.getItemCode());
         product.setCompanyId(actualCompanyId);
+        product.setMrp(request.getMrp());
+        product.setSellingPrice(request.getSellingPrice());
+        product.setDescription(request.getDescription());
+        product.setStockQuantity(request.getStockQuantity());
 
         Product savedProduct = productRepository.save(product);
         return convertToDTO(savedProduct);
@@ -65,6 +69,18 @@ public class ProductService {
         }
         if (request.getItemCode() != null && !request.getItemCode().isEmpty()) {
             product.setItemCode(request.getItemCode());
+        }
+        if (request.getMrp() != null) {
+            product.setMrp(request.getMrp());
+        }
+        if (request.getSellingPrice() != null) {
+            product.setSellingPrice(request.getSellingPrice());
+        }
+        if (request.getDescription() != null) {
+            product.setDescription(request.getDescription());
+        }
+        if (request.getStockQuantity() != null) {
+            product.setStockQuantity(request.getStockQuantity());
         }
 
         Product updatedProduct = productRepository.save(product);
@@ -159,7 +175,11 @@ public class ProductService {
                 product.getProductId(),
                 product.getProductName(),
                 product.getCompanyId(),
-                product.getItemCode()
+                product.getItemCode(),
+                product.getMrp(),
+                product.getSellingPrice(),
+                product.getDescription(),
+                product.getStockQuantity()
         );
     }
 }

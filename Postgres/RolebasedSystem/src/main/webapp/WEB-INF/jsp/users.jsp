@@ -23,7 +23,7 @@
                     <div class="card-body">
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createCompanyModal">
+                                <button id="createCompanyBtn" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createCompanyModal">
                                     <i class="fas fa-plus"></i> Create Company
                                 </button>
                                 <button class="btn btn-info ms-2" data-bs-toggle="modal" data-bs-target="#createBranchModal">
@@ -40,8 +40,9 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>Name</th>
+                                    <th>GST No</th>
+                                    <th>Phone</th>
                                     <th>Type</th>
-                                    <th>Parent Company</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -65,6 +66,22 @@
                         <div class="mb-3">
                             <label class="form-label">Company Name</label>
                             <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" name="username">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" name="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">GST Number</label>
+                            <input type="text" class="form-control" name="gstNo">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone Number</label>
+                            <input type="text" class="form-control" name="phoneNo">
                         </div>
                     </form>
                 </div>
@@ -90,6 +107,22 @@
                             <input type="text" class="form-control" name="name" required>
                         </div>
                         <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" name="username">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" name="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">GST Number</label>
+                            <input type="text" class="form-control" name="gstNo">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone Number</label>
+                            <input type="text" class="form-control" name="phoneNo">
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label">Parent Company</label>
                             <select class="form-select" name="parentCompanyId" required>
                                 <option value="">Select Company</option>
@@ -112,11 +145,18 @@
     
     <script>
         let table;
+        let isAdmin = false;
         
         $(document).ready(function() {
             $.get('/api/session', function(sessionResponse) {
                 if (sessionResponse.success) {
                     const userId = sessionResponse.data.userId;
+                    isAdmin = sessionResponse.data.isAdmin;
+                    
+                    // Hide create company button for non-admin users
+                    if (!isAdmin) {
+                        $('#createCompanyBtn').hide();
+                    }
                     table = $('#usersTable').DataTable({
                         ajax: {
                             url: '/api/user-front/companies/' + userId,
@@ -133,16 +173,13 @@
                                     return '<a href="#" onclick="showBranches(' + row.userFrontId + ')" class="text-primary, text-decoration-none">' + data + '</a>';
                                 }
                             },
+                            { data: 'username' },
+                            { data: 'gstNo' },
+                            { data: 'phoneNo' },
                             { 
                                 data: 'parentCompanyId',
                                 render: function(data) {
                                     return 'Company';
-                                }
-                            },
-                            { 
-                                data: 'parentCompanyId',
-                                render: function(data) {
-                                    return 'N/A';
                                 }
                             },
                             {
@@ -179,19 +216,27 @@
             const formData = new FormData($('#createCompanyForm')[0]);
             const data = Object.fromEntries(formData);
             
-            $.ajax({
-                url: '/api/user-front/company/create',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(data),
-                success: function() {
-                    $('#createCompanyModal').modal('hide');
-                    table.ajax.reload();
-                    loadCompanies();
-                    alert('Company created successfully!');
-                },
-                error: function() {
-                    alert('Error creating company');
+            $.get('/api/session', function(sessionResponse) {
+                if (sessionResponse.success) {
+                    const userId = sessionResponse.data.userId;
+                    $.ajax({
+                        url: '/api/user-front/company/create',
+                        method: 'POST',
+                        headers: {
+                            'userId': userId,
+                            'Content-Type': 'application/json'
+                        },
+                        data: JSON.stringify(data),
+                        success: function() {
+                            $('#createCompanyModal').modal('hide');
+                            table.ajax.reload();
+                            loadCompanies();
+                            alert('Company created successfully!');
+                        },
+                        error: function(xhr) {
+                            alert('Error: ' + (xhr.responseJSON?.message || 'Error creating company'));
+                        }
+                    });
                 }
             });
         }

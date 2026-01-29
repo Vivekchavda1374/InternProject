@@ -11,4 +11,8 @@ public class CreateProductRequest {
 
     private String productName;
     private String itemCode;
+    private Double mrp;
+    private Double sellingPrice;
+    private String description;
+    private Double stockQuantity;
 }

@@ -7,6 +7,7 @@ import com.vasyerp.rolebasedsystem.model.UserRoleNew;
 import com.vasyerp.rolebasedsystem.repository.UserFrontRepository;
 import com.vasyerp.rolebasedsystem.repository.UserRoleNewRepository;
 import com.vasyerp.rolebasedsystem.repository.UserRoleRepository;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ public class UserFrontService {
     private final UserFrontRepository userFrontRepository;
     private final UserRoleRepository userRoleRepository;
     private final UserRoleNewRepository userRoleNewRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     public UserFrontService(UserFrontRepository userFrontRepository,
                             UserRoleRepository userRoleRepository,
@@ -28,16 +30,28 @@ public class UserFrontService {
         this.userFrontRepository = userFrontRepository;
         this.userRoleRepository = userRoleRepository;
         this.userRoleNewRepository = userRoleNewRepository;
+        this.passwordEncoder = new BCryptPasswordEncoder();
     }
     private UserFrontDTO convertToDTO(UserFront userFront) {
         return new UserFrontDTO(
                 userFront.getUserFrontId(),
                 userFront.getName(),
-                userFront.getParentCompanyId()
+                userFront.getUsername(),
+                userFront.getParentCompanyId(),
+                userFront.getGstNo(),
+                userFront.getPhoneNo()
         );
     }
 
-    public UserFrontDTO createCompany(CreateUserFrontRequest request) {
+    public UserFrontDTO createCompany(Long userId, CreateUserFrontRequest request) {
+        // Only default admin can create companies
+        UserFront currentUser = userFrontRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        if (!"admin".equals(currentUser.getUsername())) {
+            throw new RuntimeException("Only default admin can create companies");
+        }
+        
         if (request.getName() == null || request.getName().trim().isEmpty()) {
             throw new RuntimeException("Company name cannot be empty");
         }
@@ -48,9 +62,11 @@ public class UserFrontService {
 
         UserFront company = new UserFront();
         company.setName(request.getName());
-        company.setUsername(request.getName().toLowerCase().replaceAll("\\s+", ""));
-        company.setPassword("admin123"); // Default password
+        company.setUsername(request.getUsername() != null ? request.getUsername() : request.getName().toLowerCase().replaceAll("\\s+", ""));
+        company.setPassword(request.getPassword() != null ? passwordEncoder.encode(request.getPassword()) : passwordEncoder.encode("admin123"));
         company.setParentCompanyId(null);
+        company.setGstNo(request.getGstNo());
+        company.setPhoneNo(request.getPhoneNo());
 
         UserFront savedCompany = userFrontRepository.save(company);
         return convertToDTO(savedCompany);
@@ -74,9 +90,11 @@ public class UserFrontService {
 
         UserFront branch = new UserFront();
         branch.setName(request.getName());
-        branch.setUsername(request.getName().toLowerCase().replaceAll("\\s+", "") + "_user");
-        branch.setPassword("user123"); // Default password
+        branch.setUsername(request.getUsername() != null ? request.getUsername() : request.getName().toLowerCase().replaceAll("\\s+", "") + "_user");
+        branch.setPassword(request.getPassword() != null ? passwordEncoder.encode(request.getPassword()) : passwordEncoder.encode("user123"));
         branch.setParentCompanyId(request.getParentCompanyId());
+        branch.setGstNo(request.getGstNo());
+        branch.setPhoneNo(request.getPhoneNo());
 
         UserFront savedBranch = userFrontRepository.save(branch);
         return convertToDTO(savedBranch);
