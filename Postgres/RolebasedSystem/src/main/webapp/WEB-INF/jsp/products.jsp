@@ -129,10 +129,10 @@
                                         <option value="">Select Company</option>
                                     </select>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">User ID</label>
-                                    <input type="number" class="form-control" name="userId" value="1" required>
-                                </div>
+<%--                                <div class="mb-3">--%>
+<%--                                    <label class="form-label">User ID</label>--%>
+<%--                                    <input type="number" class="form-control" name="userId" value="1" required>--%>
+<%--                                </div>--%>
                             </form>
                         </div>
                         <div class="modal-footer">

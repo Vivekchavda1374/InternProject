@@ -12,12 +12,12 @@ ON CONFLICT (role_name) DO NOTHING;
 -- Password is 'password' (BCrypt hash: $2a$10$slYQmyNdGzTn7ZLBXBChFOC9f6kFjAqPhccnP6DxlNBxbetINUjP)
 
 INSERT INTO user_front (name, password, parent_company_id, gst_no, phone_no) VALUES
-('admin', 'password', NULL, 'GST-000', '9999999999'), -- ID 1
-('TechCorp', 'password', NULL, 'GST-100', '9876543210'), -- ID 2 (Company)
-('RetailHub', 'password', NULL, 'GST-200', '1234567890'), -- ID 3 (Company)
-('TechCorp_Branch_A', 'password', 2, 'GST-101', '1111111111'), -- ID 4 (Branch of TechCorp)
-('TechCorp_Branch_B', 'password', 2, 'GST-102', '2222222222'), -- ID 5 (Branch of TechCorp)
-('RetailHub_Branch_X', 'password', 3, 'GST-201', '3333333333'); -- ID 6 (Branch of RetailHub)
+('admin', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL, 'GST-000', '9999999999'), -- ID 1
+('TechCorp', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL, 'GST-100', '9876543210'), -- ID 2 (Company)
+('RetailHub', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL, 'GST-200', '1234567890'), -- ID 3 (Company)
+('TechCorp_Branch_A', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 2, 'GST-101', '1111111111'), -- ID 4 (Branch of TechCorp)
+('TechCorp_Branch_B', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 2, 'GST-102', '2222222222'), -- ID 5 (Branch of TechCorp)
+('RetailHub_Branch_X', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 3, 'GST-201', '3333333333'); -- ID 6 (Branch of RetailHub)
 
 
 -- 3. Insert Addresses

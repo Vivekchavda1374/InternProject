@@ -5,6 +5,7 @@ import com.vasyerp.rolebasedsystem.model.UserFront;
 import com.vasyerp.rolebasedsystem.repository.UserFrontRepository;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final UserFrontRepository userFrontRepository;
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public AuthController(UserFrontRepository userFrontRepository) {
         this.userFrontRepository = userFrontRepository;
@@ -27,8 +29,13 @@ public class AuthController {
     public ResponseEntity<ApiResponse<UserFront>> login(@RequestParam String name,
             @RequestParam String password,
             HttpSession session) {
+        System.out.println("Login attempt - Name: " + name + ", Password: " + password);
         UserFront user = userFrontRepository.findByName(name).orElse(null);
-        if (user != null && user.getPassword().equals(password)) {
+        System.out.println("User found: " + (user != null));
+        if (user != null) {
+            System.out.println("DB Password: " + user.getPassword());
+        }
+        if (user != null && passwordEncoder.matches(password, user.getPassword())) {
             session.setAttribute("userId", user.getUserFrontId());
             session.setAttribute("name", user.getName());
             session.setAttribute("isAdmin", user.getParentCompanyId() == null);

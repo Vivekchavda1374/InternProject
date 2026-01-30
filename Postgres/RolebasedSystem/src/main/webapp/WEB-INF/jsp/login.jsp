@@ -61,14 +61,12 @@
             $('#loginForm').on('submit', function (e) {
                 e.preventDefault();
 
-                const formData = new FormData(this);
+                const formData = $(this).serialize();
 
                 $.ajax({
                     url: '/api/login',
                     method: 'POST',
                     data: formData,
-                    processData: false,
-                    contentType: false,
                     success: function (response) {
                         if (response.success) {
                             window.location.href = '/';
