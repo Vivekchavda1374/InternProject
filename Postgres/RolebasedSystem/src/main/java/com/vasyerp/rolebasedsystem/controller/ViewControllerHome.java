@@ -71,7 +71,6 @@ public class ViewControllerHome {
     @GetMapping("/sales")
     public String sales(Model model) {
         try {
-            // In a real implementation, you would load sales data from a service
             model.addAttribute("sales", List.of());
             model.addAttribute("salesItems", List.of());
         } catch (Exception e) {

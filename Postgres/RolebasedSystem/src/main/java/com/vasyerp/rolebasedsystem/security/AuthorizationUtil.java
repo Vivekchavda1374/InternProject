@@ -1,19 +1,19 @@
 package com.vasyerp.rolebasedsystem.security;
 
-import com.vasyerp.rolebasedsystem.repository.UserRoleNewRepository;
+import com.vasyerp.rolebasedsystem.service.UserFrontService;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AuthorizationUtil {
 
-    private final UserRoleNewRepository userRoleNewRepository;
+    private final UserFrontService userFrontService;
 
-    public AuthorizationUtil(UserRoleNewRepository userRoleNewRepository) {
-        this.userRoleNewRepository = userRoleNewRepository;
+    public AuthorizationUtil(UserFrontService userFrontService) {
+        this.userFrontService = userFrontService;
     }
 
     public boolean hasRole(Long userId, String roleName) {
-        return userRoleNewRepository.hasRole(userId, roleName);
+        return userFrontService.hasRole(userId, roleName);
     }
     public boolean isAdmin(Long userId) {
         return hasRole(userId, "ADMIN");

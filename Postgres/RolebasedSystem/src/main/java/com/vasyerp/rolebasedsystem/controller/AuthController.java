@@ -38,7 +38,7 @@ public class AuthController {
         if (user != null && passwordEncoder.matches(password, user.getPassword())) {
             session.setAttribute("userId", user.getUserFrontId());
             session.setAttribute("name", user.getName());
-            session.setAttribute("isAdmin", user.getParentCompanyId() == null);
+            session.setAttribute("isAdmin", user.getParentCompany() == null);
             return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", user));
         }
         return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Invalid credentials", null));

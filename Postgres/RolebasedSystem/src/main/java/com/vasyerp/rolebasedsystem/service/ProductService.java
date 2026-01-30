@@ -33,14 +33,11 @@ public class ProductService {
         UserFront currentUser = userFrontRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Determine the actual company ID for the product
         Long actualCompanyId;
-        if (currentUser.getParentCompanyId() == null) {
-            // Company user - use their own ID
+        if (currentUser.getParentCompany() == null) {
             actualCompanyId = currentUser.getUserFrontId();
         } else {
-            // Branch user - use parent company ID
-            actualCompanyId = currentUser.getParentCompanyId();
+            actualCompanyId = currentUser.getParentCompany().getUserFrontId();
         }
 
         Product product = new Product();
@@ -103,23 +100,19 @@ public class ProductService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         boolean isAllowed = false;
-
-        // 1. Admin can see everything
         if ("admin".equals(currentUser.getName())) {
             isAllowed = true;
         }
-        // 2. Company can see itself and its branches
-        else if (currentUser.getParentCompanyId() == null) {
+        else if (currentUser.getParentCompany() == null) {
             if (targetCompanyId.equals(currentUser.getUserFrontId())) {
                 isAllowed = true;
             } else {
                 UserFront targetUser = userFrontRepository.findById(targetCompanyId).orElse(null);
-                if (targetUser != null && currentUser.getUserFrontId().equals(targetUser.getParentCompanyId())) {
+                if (targetUser != null && currentUser.getUserFrontId().equals(targetUser.getParentCompany() != null ? targetUser.getParentCompany().getUserFrontId() : null)) {
                     isAllowed = true;
                 }
             }
         }
-        // 3. Branch can only see itself
         else {
             if (targetCompanyId.equals(currentUser.getUserFrontId())) {
                 isAllowed = true;
@@ -127,12 +120,6 @@ public class ProductService {
         }
 
         if (!isAllowed) {
-            // Alternatively, return empty list or throw exception.
-            // For filter, empty list is safer than 403 error for UX, but exception is more
-            // secure.
-            // Keeping mostly consistent with previous error handling logic.
-            // But let's verify if the user is trying to see "All" vs "One".
-            // The method name implies "Get products OF company X".
             throw new RuntimeException("Access denied to view products of this company/branch");
         }
 
@@ -181,13 +168,13 @@ public class ProductService {
 
     private boolean isCompany(Long userId) {
         return userFrontRepository.findById(userId)
-                .map(user -> user.getParentCompanyId() == null)
+                .map(user -> user.getParentCompany() == null)
                 .orElse(false);
     }
 
     private boolean isBranch(Long userId) {
         return userFrontRepository.findById(userId)
-                .map(user -> user.getParentCompanyId() != null)
+                .map(user -> user.getParentCompany() != null)
                 .orElse(false);
     }
 

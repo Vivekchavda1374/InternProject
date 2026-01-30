@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "user_front")
@@ -23,8 +25,12 @@ public class UserFront {
     @Column(name = "password", length = 255, nullable = false)
     private String password;
 
-    @Column(name = "parent_company_id")
-    private Long parentCompanyId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_company_id")
+    private UserFront parentCompany;
+
+    @OneToMany(mappedBy = "parentCompany", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<UserFront> branches;
 
     @Column(name = "gst_no", length = 20)
     private String gstNo;
@@ -34,5 +40,13 @@ public class UserFront {
 
     @OneToOne(mappedBy = "userFront", cascade = CascadeType.ALL)
     private UserFrontAddress userFrontAddress;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "user_role_new",
+        joinColumns = @JoinColumn(name = "user_front_id"),
+        inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<UserRole> roles;
 
 }

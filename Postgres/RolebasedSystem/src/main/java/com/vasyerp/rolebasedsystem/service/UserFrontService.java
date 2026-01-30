@@ -40,7 +40,7 @@ public class UserFrontService {
         return new UserFrontDTO(
                 userFront.getUserFrontId(),
                 userFront.getName(),
-                userFront.getParentCompanyId(),
+                userFront.getParentCompany() != null ? userFront.getParentCompany().getUserFrontId() : null,
                 userFront.getGstNo(),
                 userFront.getPhoneNo(),
                 address != null ? address.getAddressLine1() : null,
@@ -51,7 +51,6 @@ public class UserFrontService {
     }
 
     public UserFrontDTO createCompany(Long userId, CreateUserFrontRequest request) {
-        // Only default admin can create companies
         UserFront currentUser = userFrontRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -74,7 +73,7 @@ public class UserFrontService {
         UserFront company = new UserFront();
         company.setName(request.getName());
         company.setPassword(passwordEncoder.encode(request.getPassword()));
-        company.setParentCompanyId(null);
+        company.setParentCompany(null);
         company.setGstNo(request.getGstNo());
         company.setPhoneNo(request.getPhoneNo());
 
@@ -110,14 +109,14 @@ public class UserFrontService {
                 .findById(request.getParentCompanyId())
                 .orElseThrow(() -> new RuntimeException("Parent company not found"));
 
-        if (parentCompany.getParentCompanyId() != null) {
+        if (parentCompany.getParentCompany() != null) {
             throw new RuntimeException("Cannot create branch under a branch. Parent must be a company");
         }
 
         UserFront branch = new UserFront();
         branch.setName(request.getName());
         branch.setPassword(passwordEncoder.encode(request.getPassword()));
-        branch.setParentCompanyId(request.getParentCompanyId());
+        branch.setParentCompany(parentCompany);
         branch.setGstNo(request.getGstNo());
         branch.setPhoneNo(request.getPhoneNo());
 
@@ -145,11 +144,11 @@ public class UserFrontService {
     }
 
     public List<UserFrontDTO> getBranchesByCompany(Long companyId) {
-        userFrontRepository
+        UserFront company = userFrontRepository
                 .findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
-        return userFrontRepository.findBranchesByCompany(companyId)
+        return company.getBranches()
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -159,25 +158,20 @@ public class UserFrontService {
         UserFront currentUser = userFrontRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Default admin sees all
         if ("admin".equals(currentUser.getName())) {
             return getAllCompanies();
         }
 
-        // Regular companies see only themselves and their branches
-        if (currentUser.getParentCompanyId() == null) {
+        if (currentUser.getParentCompany() == null) {
             List<UserFrontDTO> result = new ArrayList<>();
             result.add(convertToDTO(currentUser));
             result.addAll(getBranchesByCompany(currentUser.getUserFrontId()));
             return result;
         }
-
-        // Branches see their parent company and sibling branches
         List<UserFrontDTO> result = new ArrayList<>();
-        UserFront parentCompany = userFrontRepository.findById(currentUser.getParentCompanyId())
-                .orElseThrow(() -> new RuntimeException("Parent company not found"));
+        UserFront parentCompany = currentUser.getParentCompany();
         result.add(convertToDTO(parentCompany));
-        result.addAll(getBranchesByCompany(currentUser.getParentCompanyId()));
+        result.addAll(getBranchesByCompany(parentCompany.getUserFrontId()));
         return result;
     }
 
@@ -210,25 +204,14 @@ public class UserFrontService {
                 .findById(userFrontId)
                 .orElseThrow(() -> new RuntimeException("User/Company/Branch not found"));
 
-        if (userFront.getParentCompanyId() == null) {
-            boolean hasBranches = userFrontRepository.existsByParentCompanyId(userFrontId);
+        if (userFront.getParentCompany() == null) {
+            boolean hasBranches = userFrontRepository.existsByParentCompany(userFront);
             if (hasBranches) {
                 throw new RuntimeException("Cannot delete company with existing branches");
             }
         }
-        List<UserRoleNew> roleAssignments = userRoleNewRepository
-                .findRolesByUserFrontId(userFrontId)
-                .stream()
-                .map(roleId -> userRoleNewRepository
-                        .findByUserFrontIdAndRoleId(userFrontId, roleId)
-                        .orElse(null))
-                .toList();
-
-        roleAssignments.forEach(role -> {
-            if (role != null) {
-                userRoleNewRepository.delete(role);
-            }
-        });
+        List<UserRoleNew> roleAssignments = userRoleNewRepository.findByUserFrontId(userFrontId);
+        roleAssignments.forEach(userRoleNewRepository::delete);
 
         userFrontRepository.delete(userFront);
     }
@@ -272,9 +255,12 @@ public class UserFrontService {
         UserFront userFront = userFrontRepository.findById(userFrontId)
                 .orElseThrow(() -> new RuntimeException("User/Company/Branch not found"));
 
-        List<Long> roleIds = userRoleNewRepository.findRolesByUserFrontId(userFrontId);
-        List<String> roleNames = roleIds.stream()
-                .map(roleId -> userRoleRepository.findById(roleId)
+        List<UserRoleNew> userRoles = userRoleNewRepository.findByUserFrontId(userFrontId);
+        List<Long> roleIds = userRoles.stream()
+                .map(UserRoleNew::getRoleId)
+                .collect(Collectors.toList());
+        List<String> roleNames = userRoles.stream()
+                .map(userRole -> userRoleRepository.findById(userRole.getRoleId())
                         .map(UserRole::getRoleName)
                         .orElse("Unknown"))
                 .collect(Collectors.toList());
@@ -290,6 +276,16 @@ public class UserFrontService {
 
     public List<UserRole> getAllRoles() {
         return userRoleRepository.findAll();
+    }
+
+    public boolean hasRole(Long userFrontId, String roleName) {
+        UserFront userFront = userFrontRepository.findById(userFrontId)
+                .orElse(null);
+        if (userFront == null) {
+            return false;
+        }
+        return userFront.getRoles().stream()
+                .anyMatch(role -> role.getRoleName().equals(roleName));
     }
 
 }

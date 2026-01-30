@@ -1,5 +1,6 @@
 package com.vasyerp.rolebasedsystem.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -19,7 +20,7 @@ public class UserFrontAddress {
 
     @OneToOne
     @JoinColumn(name = "user_front_id")
-    @com.fasterxml.jackson.annotation.JsonIgnore
+    @JsonIgnore
     private UserFront userFront;
 
     @Column(name = "name", length = 150)
