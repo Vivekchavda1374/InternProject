@@ -12,10 +12,6 @@ public interface UserFrontRepository extends JpaRepository<UserFront, Long> {
 
     Optional<UserFront> findByName(String name);
 
-    List<UserFront> findByParentCompanyIsNull();
-
-    List<UserFront> findByParentCompany(UserFront parentCompany);
-
     boolean existsByParentCompany(UserFront parentCompany);
 
 }

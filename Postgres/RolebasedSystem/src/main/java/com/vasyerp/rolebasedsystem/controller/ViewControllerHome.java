@@ -2,6 +2,7 @@ package com.vasyerp.rolebasedsystem.controller;
 
 import com.vasyerp.rolebasedsystem.service.ProductService;
 import com.vasyerp.rolebasedsystem.service.UserFrontService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,7 +31,7 @@ public class ViewControllerHome {
     }
 
     @GetMapping("/products")
-    public String products(Model model, jakarta.servlet.http.HttpSession session) {
+    public String products(Model model, HttpSession session) {
         try {
             Long userId = (Long) session.getAttribute("userId");
             if (userId != null) {

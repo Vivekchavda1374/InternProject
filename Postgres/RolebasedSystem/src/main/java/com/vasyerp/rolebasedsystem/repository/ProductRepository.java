@@ -14,17 +14,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findByCompanyId(Long companyId);
 
-    Optional<Product> findByProductNameAndCompanyId(String productName, Long companyId);
-
-    Optional<Product> findByItemCodeAndCompanyId(String itemCode, Long companyId);
-
-    @Query("SELECT p FROM Product p WHERE p.companyId = :companyId ORDER BY p.productId DESC")
-    List<Product> findAllByCompanyIdWithDetails(@Param("companyId") Long companyId);
-
     @Query("SELECT p FROM Product p WHERE p.companyId = :companyId AND LOWER(p.productName) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
     List<Product> searchProductsByName(@Param("companyId") Long companyId, @Param("searchTerm") String searchTerm);
 
-    List<Product> findByCompanyIdIn(List<Long> companyIds);
 
-    boolean existsByProductIdAndCompanyId(Long productId, Long companyId);
 }
