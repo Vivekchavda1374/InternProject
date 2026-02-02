@@ -143,7 +143,6 @@
                 </div>
             </div>
 
-            <!-- Edit Product Modal -->
             <div class="modal fade" id="editProductModal">
                 <div class="modal-dialog">
                     <div class="modal-content">
@@ -235,7 +234,6 @@
                                     const parents = allItems.filter(item => !item.parentCompanyId);
 
                                     if (parents.length === 0 && allItems.length > 0) {
-                                        // Fallback for branch users seeing themselves
                                         allItems.forEach(item => {
                                             select.append('<option value="' + item.userFrontId + '">' + item.name + '</option>');
                                         });
