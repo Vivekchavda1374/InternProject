@@ -26,12 +26,13 @@ CREATE TABLE user_front (
                             username VARCHAR(50) UNIQUE NOT NULL,
                             password VARCHAR(255) NOT NULL,
                             parent_company_id INT,
+                            gst_no VARCHAR(20),
+                            phone_no VARCHAR(15),
                             CONSTRAINT fk_parent_company
                                 FOREIGN KEY (parent_company_id)
                                     REFERENCES user_front(user_front_id)
                                     ON DELETE CASCADE
 );
-drop table user_front;
 CREATE TABLE contact (
                          contact_id BIGSERIAL PRIMARY KEY,
                          contact_type VARCHAR(20) CHECK (contact_type IN ('CUSTOMER','SUPPLIER')) NOT NULL,
@@ -129,9 +130,7 @@ CREATE TABLE purchase_item (
                                CONSTRAINT fk_purchase_item_product FOREIGN KEY (product_id) REFERENCES product(product_id)
 );
 
-ALTER TABLE user_front
-ADD COLUMN gst_no VARCHAR(20),
-ADD COLUMN phone_no VARCHAR(15);
+
 
 
 CREATE TABLE user_front_address (

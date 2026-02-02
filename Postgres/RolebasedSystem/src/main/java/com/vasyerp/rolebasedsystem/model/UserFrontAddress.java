@@ -18,10 +18,13 @@ public class UserFrontAddress {
     @Column(name = "user_front_address_id")
     private Long userFrontAddressId;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "user_front_id")
     @JsonIgnore
     private UserFront userFront;
+
+    @Column(name = "address_type", length = 50)
+    private String addressType;
 
     @Column(name = "name", length = 150)
     private String name;

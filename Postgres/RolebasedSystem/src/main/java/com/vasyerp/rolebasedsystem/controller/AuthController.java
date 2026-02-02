@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final UserFrontRepository userFrontRepository;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder(12);
 
     public AuthController(UserFrontRepository userFrontRepository) {
         this.userFrontRepository = userFrontRepository;
@@ -34,12 +34,13 @@ public class AuthController {
         System.out.println("User found: " + (user != null));
         if (user != null) {
             System.out.println("DB Password: " + user.getPassword());
+            System.out.println("Password matches: " + passwordEncoder.matches(password, user.getPassword()));
         }
         if (user != null && passwordEncoder.matches(password, user.getPassword())) {
             session.setAttribute("userId", user.getUserFrontId());
             session.setAttribute("name", user.getName());
             session.setAttribute("isAdmin", user.getParentCompany() == null);
-            return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", user));
+            return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", null));
         }
         return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Invalid credentials", null));
     }

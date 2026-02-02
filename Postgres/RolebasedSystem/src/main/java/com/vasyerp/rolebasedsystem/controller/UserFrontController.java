@@ -19,6 +19,44 @@ public class UserFrontController {
     public UserFrontController(UserFrontService userFrontService) {
         this.userFrontService = userFrontService;
     }
+
+    @PostMapping("/{userFrontId}/addresses")
+    public ResponseEntity<ApiResponse<AddressDTO>> addAddress(
+            @PathVariable Long userFrontId,
+            @RequestBody CreateAddressRequest request) {
+        try {
+            AddressDTO address = userFrontService.addAddress(userFrontId, request);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(new ApiResponse<>(true, "Address added successfully", address));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @GetMapping("/{userFrontId}/addresses")
+    public ResponseEntity<ApiResponse<List<AddressDTO>>> getAddresses(
+            @PathVariable Long userFrontId) {
+        try {
+            List<AddressDTO> addresses = userFrontService.getAddresses(userFrontId);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Addresses retrieved successfully", addresses));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @DeleteMapping("/addresses/{addressId}")
+    public ResponseEntity<ApiResponse<Void>> deleteAddress(
+            @PathVariable Long addressId) {
+        try {
+            userFrontService.deleteAddress(addressId);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Address deleted successfully", null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
     @PostMapping("/company/create")
     public ResponseEntity<ApiResponse<UserFrontDTO>> createCompany(
             @RequestHeader("userId") Long userId,

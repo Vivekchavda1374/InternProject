@@ -8,6 +8,7 @@ import com.vasyerp.rolebasedsystem.model.UserFrontAddress;
 import com.vasyerp.rolebasedsystem.repository.UserFrontRepository;
 import com.vasyerp.rolebasedsystem.repository.UserRoleNewRepository;
 import com.vasyerp.rolebasedsystem.repository.UserRoleRepository;
+import com.vasyerp.rolebasedsystem.repository.UserFrontAddressRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,19 +24,24 @@ public class UserFrontService {
     private final UserFrontRepository userFrontRepository;
     private final UserRoleRepository userRoleRepository;
     private final UserRoleNewRepository userRoleNewRepository;
+    private final UserFrontAddressRepository addressRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
     public UserFrontService(UserFrontRepository userFrontRepository,
             UserRoleRepository userRoleRepository,
-            UserRoleNewRepository userRoleNewRepository) {
+            UserRoleNewRepository userRoleNewRepository,
+            UserFrontAddressRepository addressRepository) {
         this.userFrontRepository = userFrontRepository;
         this.userRoleRepository = userRoleRepository;
         this.userRoleNewRepository = userRoleNewRepository;
+        this.addressRepository = addressRepository;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
     private UserFrontDTO convertToDTO(UserFront userFront) {
-        UserFrontAddress address = userFront.getUserFrontAddress();
+        List<AddressDTO> addresses = userFront.getAddresses().stream()
+                .map(this::convertAddressToDTO)
+                .collect(Collectors.toList());
 
         return new UserFrontDTO(
                 userFront.getUserFrontId(),
@@ -43,11 +49,50 @@ public class UserFrontService {
                 userFront.getParentCompany() != null ? userFront.getParentCompany().getUserFrontId() : null,
                 userFront.getGstNo(),
                 userFront.getPhoneNo(),
-                address != null ? address.getAddressLine1() : null,
-                address != null ? address.getAddressLine2() : null,
-                address != null ? address.getCity() : null,
-                address != null ? address.getState() : null,
-                address != null ? address.getCountry() : null);
+                addresses);
+    }
+
+    private AddressDTO convertAddressToDTO(UserFrontAddress address) {
+        return new AddressDTO(
+                address.getUserFrontAddressId(),
+                address.getName(),
+                address.getAddressLine1(),
+                address.getAddressLine2(),
+                address.getCity(),
+                address.getState(),
+                address.getCountry(),
+                address.getAddressType());
+    }
+
+    public AddressDTO addAddress(Long userFrontId, CreateAddressRequest request) {
+        UserFront userFront = userFrontRepository.findById(userFrontId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        UserFrontAddress address = new UserFrontAddress();
+        address.setUserFront(userFront);
+        address.setName(request.getName());
+        address.setAddressLine1(request.getAddressLine1());
+        address.setAddressLine2(request.getAddressLine2());
+        address.setCity(request.getCity());
+        address.setState(request.getState());
+        address.setCountry(request.getCountry());
+        address.setAddressType(request.getAddressType());
+
+        UserFrontAddress savedAddress = addressRepository.save(address);
+        return convertAddressToDTO(savedAddress);
+    }
+
+    public List<AddressDTO> getAddresses(Long userFrontId) {
+        return addressRepository.findByUserFront_UserFrontId(userFrontId)
+                .stream()
+                .map(this::convertAddressToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public void deleteAddress(Long addressId) {
+        UserFrontAddress address = addressRepository.findById(addressId)
+                .orElseThrow(() -> new RuntimeException("Address not found"));
+        addressRepository.delete(address);
     }
 
     public UserFrontDTO createCompany(Long userId, CreateUserFrontRequest request) {
@@ -76,21 +121,24 @@ public class UserFrontService {
         company.setParentCompany(null);
         company.setGstNo(request.getGstNo());
         company.setPhoneNo(request.getPhoneNo());
-
-        UserFrontAddress address = new UserFrontAddress();
-        address.setName(company.getName());
-        address.setAddressLine1(request.getAddressLine1());
-        address.setAddressLine2(request.getAddressLine2());
-        address.setCity(request.getCity());
-        address.setState(request.getState());
-        address.setCountry(request.getCountry());
-
-        address.setUserFront(company);
-        company.setUserFrontAddress(address);
+        company.setAddresses(new ArrayList<>());
 
         UserFront savedCompany = userFrontRepository.save(company);
 
-        return convertToDTO(savedCompany);
+        if (request.getAddressLine1() != null || request.getCity() != null) {
+            UserFrontAddress address = new UserFrontAddress();
+            address.setUserFront(savedCompany);
+            address.setName(savedCompany.getName());
+            address.setAddressLine1(request.getAddressLine1());
+            address.setAddressLine2(request.getAddressLine2());
+            address.setCity(request.getCity());
+            address.setState(request.getState());
+            address.setCountry(request.getCountry());
+            address.setAddressType("Primary");
+            addressRepository.save(address);
+        }
+
+        return convertToDTO(userFrontRepository.findById(savedCompany.getUserFrontId()).get());
     }
 
     public UserFrontDTO createBranch(CreateUserFrontRequest request) {
@@ -119,21 +167,24 @@ public class UserFrontService {
         branch.setParentCompany(parentCompany);
         branch.setGstNo(request.getGstNo());
         branch.setPhoneNo(request.getPhoneNo());
-
-        UserFrontAddress address = new UserFrontAddress();
-        address.setName(branch.getName());
-        address.setAddressLine1(request.getAddressLine1());
-        address.setAddressLine2(request.getAddressLine2());
-        address.setCity(request.getCity());
-        address.setState(request.getState());
-        address.setCountry(request.getCountry());
-
-        address.setUserFront(branch);
-        branch.setUserFrontAddress(address);
+        branch.setAddresses(new ArrayList<>());
 
         UserFront savedBranch = userFrontRepository.save(branch);
 
-        return convertToDTO(savedBranch);
+        if (request.getAddressLine1() != null || request.getCity() != null) {
+            UserFrontAddress address = new UserFrontAddress();
+            address.setUserFront(savedBranch);
+            address.setName(savedBranch.getName());
+            address.setAddressLine1(request.getAddressLine1());
+            address.setAddressLine2(request.getAddressLine2());
+            address.setCity(request.getCity());
+            address.setState(request.getState());
+            address.setCountry(request.getCountry());
+            address.setAddressType("Primary");
+            addressRepository.save(address);
+        }
+
+        return convertToDTO(userFrontRepository.findById(savedBranch.getUserFrontId()).get());
     }
 
     public List<UserFrontDTO> getAllCompanies() {

@@ -38,8 +38,8 @@ public class UserFront {
     @Column(name = "phone_no", length = 15)
     private String phoneNo;
 
-    @OneToOne(mappedBy = "userFront", cascade = CascadeType.ALL)
-    private UserFrontAddress userFrontAddress;
+    @OneToMany(mappedBy = "userFront", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<UserFrontAddress> addresses;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
