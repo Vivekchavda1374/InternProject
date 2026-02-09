@@ -42,11 +42,7 @@ public class UserFront {
     private List<UserFrontAddress> addresses;
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "user_role_new",
-        joinColumns = @JoinColumn(name = "user_front_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
+    @JoinTable(name = "user_role_new", joinColumns = @JoinColumn(name = "user_front_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<UserRole> roles;
 
 }

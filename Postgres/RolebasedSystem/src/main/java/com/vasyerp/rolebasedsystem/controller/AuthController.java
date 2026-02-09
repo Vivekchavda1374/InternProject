@@ -29,17 +29,12 @@ public class AuthController {
     public ResponseEntity<ApiResponse<UserFront>> login(@RequestParam String name,
             @RequestParam String password,
             HttpSession session) {
-//        System.out.println("Login attempt - Name: " + name + ", Password: " + password);
         UserFront user = userFrontRepository.findByName(name).orElse(null);
-//        System.out.println("User found: " + (user != null));
-//        if (user != null) {
-//            System.out.println("DB Password: " + user.getPassword());
-//            System.out.println("Password matches: " + passwordEncoder.matches(password, user.getPassword()));
-//        }
         if (user != null && passwordEncoder.matches(password, user.getPassword())) {
             session.setAttribute("userId", user.getUserFrontId());
             session.setAttribute("name", user.getName());
-            session.setAttribute("isAdmin", user.getParentCompany() == null);
+            session.setAttribute("isAdmin", "admin".equals(user.getName()));
+            session.setAttribute("isCompany", user.getParentCompany() == null);
             return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", null));
         }
         return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Invalid credentials", null));
@@ -58,11 +53,11 @@ public class AuthController {
         Long userId = (Long) session.getAttribute("userId");
         if (userId != null) {
             return ResponseEntity.ok(new ApiResponse<>(true, "Session active",
-                    new Object() {
-                        public Long userId = (Long) session.getAttribute("userId");
-                        public String name = (String) session.getAttribute("name");
-                        public Boolean isAdmin = (Boolean) session.getAttribute("isAdmin");
-                    }));
+                    java.util.Map.of(
+                            "userId", session.getAttribute("userId"),
+                            "name", session.getAttribute("name"),
+                            "isAdmin", session.getAttribute("isAdmin"),
+                            "isCompany", session.getAttribute("isCompany"))));
         }
         return ResponseEntity.badRequest().body(new ApiResponse<>(false, "No active session", null));
     }

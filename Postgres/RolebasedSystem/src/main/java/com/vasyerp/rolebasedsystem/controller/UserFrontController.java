@@ -57,6 +57,7 @@ public class UserFrontController {
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
     }
+
     @PostMapping("/company/create")
     public ResponseEntity<ApiResponse<UserFrontDTO>> createCompany(
             @RequestHeader("userId") Long userId,
@@ -70,6 +71,7 @@ public class UserFrontController {
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
     }
+
     @GetMapping("/companies/{userId}")
     public ResponseEntity<ApiResponse<List<UserFrontDTO>>> getCompaniesByUser(
             @PathVariable Long userId) {
@@ -176,7 +178,8 @@ public class UserFrontController {
             @RequestBody UpdateUserFrontRequest request) {
         try {
             UserFrontDTO updatedUserFront = userFrontService.updateUserFront(userFrontId, request);
-            return ResponseEntity.ok(new ApiResponse<>(true, "User/Company/Branch updated successfully", updatedUserFront));
+            return ResponseEntity
+                    .ok(new ApiResponse<>(true, "User/Company/Branch updated successfully", updatedUserFront));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ApiResponse<>(false, e.getMessage(), null));

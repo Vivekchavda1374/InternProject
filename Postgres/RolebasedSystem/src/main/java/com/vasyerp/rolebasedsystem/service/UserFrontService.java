@@ -268,12 +268,12 @@ public class UserFrontService {
     }
 
     public UserRoleDTO assignRoleToUser(AssignUserRoleRequest request) {
-        UserFront userFront = userFrontRepository
-                .findById(request.getUserFrontId())
-                .orElseThrow(() -> new RuntimeException("User/Company/Branch not found"));
-        UserRole role = userRoleRepository
-                .findById(request.getRoleId())
-                .orElseThrow(() -> new RuntimeException("Role not found"));
+        if (!userFrontRepository.existsById(request.getUserFrontId())) {
+            throw new RuntimeException("User/Company/Branch not found");
+        }
+        if (!userRoleRepository.existsById(request.getRoleId())) {
+            throw new RuntimeException("Role not found");
+        }
 
         if (userRoleNewRepository.findByUserFrontIdAndRoleId(request.getUserFrontId(), request.getRoleId())
                 .isPresent()) {

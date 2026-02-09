@@ -102,18 +102,18 @@ public class ProductService {
         boolean isAllowed = false;
         if ("admin".equals(currentUser.getName())) {
             isAllowed = true;
-        }
-        else if (currentUser.getParentCompany() == null) {
+        } else if (currentUser.getParentCompany() == null) {
             if (targetCompanyId.equals(currentUser.getUserFrontId())) {
                 isAllowed = true;
             } else {
                 UserFront targetUser = userFrontRepository.findById(targetCompanyId).orElse(null);
-                if (targetUser != null && currentUser.getUserFrontId().equals(targetUser.getParentCompany() != null ? targetUser.getParentCompany().getUserFrontId() : null)) {
+                if (targetUser != null && currentUser.getUserFrontId()
+                        .equals(targetUser.getParentCompany() != null ? targetUser.getParentCompany().getUserFrontId()
+                                : null)) {
                     isAllowed = true;
                 }
             }
-        }
-        else {
+        } else {
             if (targetCompanyId.equals(currentUser.getUserFrontId())) {
                 isAllowed = true;
             }
