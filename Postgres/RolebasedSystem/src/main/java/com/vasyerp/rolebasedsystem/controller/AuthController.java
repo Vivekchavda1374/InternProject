@@ -29,13 +29,13 @@ public class AuthController {
     public ResponseEntity<ApiResponse<UserFront>> login(@RequestParam String name,
             @RequestParam String password,
             HttpSession session) {
-        System.out.println("Login attempt - Name: " + name + ", Password: " + password);
+//        System.out.println("Login attempt - Name: " + name + ", Password: " + password);
         UserFront user = userFrontRepository.findByName(name).orElse(null);
-        System.out.println("User found: " + (user != null));
-        if (user != null) {
-            System.out.println("DB Password: " + user.getPassword());
-            System.out.println("Password matches: " + passwordEncoder.matches(password, user.getPassword()));
-        }
+//        System.out.println("User found: " + (user != null));
+//        if (user != null) {
+//            System.out.println("DB Password: " + user.getPassword());
+//            System.out.println("Password matches: " + passwordEncoder.matches(password, user.getPassword()));
+//        }
         if (user != null && passwordEncoder.matches(password, user.getPassword())) {
             session.setAttribute("userId", user.getUserFrontId());
             session.setAttribute("name", user.getName());

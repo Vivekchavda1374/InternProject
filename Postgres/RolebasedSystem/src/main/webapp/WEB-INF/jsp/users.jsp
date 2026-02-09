@@ -205,8 +205,6 @@
             if (sessionResponse.success) {
                 const userId = sessionResponse.data.userId;
                 isAdmin = sessionResponse.data.isAdmin;
-
-                // Hide create company button for non-admin users
                 if (!isAdmin) {
                     $('#createCompanyBtn').hide();
                 }

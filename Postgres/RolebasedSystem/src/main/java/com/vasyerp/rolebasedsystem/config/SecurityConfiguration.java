@@ -30,10 +30,11 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/session").permitAll()
                         .requestMatchers("/api/user-front/**").permitAll()
                         .requestMatchers("/api/products/**").permitAll()
+                        .requestMatchers("/api/complete").permitAll()
                         .requestMatchers("/static/**").permitAll()
                         .anyRequest().permitAll())
-                .httpBasic(basic -> {
-                });
+                .httpBasic(basic -> {  }
+                );
 
         return http.build();
     }

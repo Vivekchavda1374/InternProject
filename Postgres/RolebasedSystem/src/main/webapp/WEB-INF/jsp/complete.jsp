@@ -37,6 +37,7 @@
                         <th>City</th>
                         <th>State</th>
                         <th>Country</th>
+                        <th>Role</th>
                         <th>Product</th>
                         <th>Item Code</th>
                         <th>MRP</th>
@@ -70,18 +71,19 @@ $(document).ready(function() {
         
         userId = response.data.userId;
         const isAdmin = response.data.isAdmin;
-        const userName = response.data.userName || response.data.name || 'User';
+        const userName = response.data.userName || 'User';
         
         $('#userInfo').html('<strong>' + userName + '</strong> (' + (isAdmin ? 'Admin' : 'User') + ')');
+        
+        if (!isAdmin) {
+            $('#accessDenied').show();
+            return;
+        }
         
         table = $('#completeTable').DataTable({
             ajax: {
                 url: '/api/complete',
                 dataSrc: '',
-                headers: {
-                    'userId': userId,
-                    'isAdmin': isAdmin
-                },
                 error: function() {
                     alert('Error loading data. Please check your permissions.');
                 }
@@ -92,12 +94,11 @@ $(document).ready(function() {
                 { data: 'companyName', defaultContent: '' },
                 { data: 'branchName', defaultContent: '' },
                 { data: 'parentCompany', defaultContent: '' },
-                { data: 'gstNo', defaultContent: '', visible: isAdmin },
-                { data: 'phoneNo', defaultContent: '', visible: isAdmin },
+                { data: 'gstNo', defaultContent: '' },
+                { data: 'phoneNo', defaultContent: '' },
                 { 
                     data: null,
                     defaultContent: '',
-                    visible: isAdmin,
                     render: (data) => {
                         let addr = [];
                         if (data.addressLine1) addr.push(data.addressLine1);
@@ -105,9 +106,10 @@ $(document).ready(function() {
                         return addr.join(', ');
                     }
                 },
-                { data: 'city', defaultContent: '', visible: isAdmin },
-                { data: 'state', defaultContent: '', visible: isAdmin },
-                { data: 'country', defaultContent: '', visible: isAdmin },
+                { data: 'city', defaultContent: '' },
+                { data: 'state', defaultContent: '' },
+                { data: 'country', defaultContent: '' },
+                { data: 'roleName', defaultContent: '' },
                 { data: 'productName', defaultContent: '' },
                 { data: 'itemCode', defaultContent: '' },
                 { data: 'mrp', defaultContent: '', render: (data) => data ? '₹' + data : '' },
