@@ -108,4 +108,9 @@ public class ViewControllerHome {
     public String complete() {
         return "complete";
     }
+
+    @GetMapping("/transactions")
+    public String transactions() {
+        return "transactions";
+    }
 }

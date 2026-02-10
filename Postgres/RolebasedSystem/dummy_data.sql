@@ -402,3 +402,12 @@ WHERE uf.name = 'admin';
 
 select * from user_front
 
+
+
+-- Make contact_id nullable in sales and purchase tables
+ALTER TABLE sales ALTER COLUMN contact_id DROP NOT NULL;
+ALTER TABLE purchase ALTER COLUMN contact_id DROP NOT NULL;
+
+-- OR drop the foreign key constraints entirely
+ALTER TABLE sales DROP CONSTRAINT IF EXISTS fk_sales_contact;
+ALTER TABLE purchase DROP CONSTRAINT IF EXISTS fk_purchase_contact;
