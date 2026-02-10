@@ -31,16 +31,19 @@ public class UserFrontServiceImpl implements UserFrontService {
     private final UserRoleRepository userRoleRepository;
     private final UserRoleNewRepository userRoleNewRepository;
     private final UserFrontAddressRepository addressRepository;
+    private final CountryService countryService;
     private final BCryptPasswordEncoder passwordEncoder;
 
     public UserFrontServiceImpl(UserFrontRepository userFrontRepository,
-                                UserRoleRepository userRoleRepository,
-                                UserRoleNewRepository userRoleNewRepository,
-                                UserFrontAddressRepository addressRepository) {
+            UserRoleRepository userRoleRepository,
+            UserRoleNewRepository userRoleNewRepository,
+            UserFrontAddressRepository addressRepository,
+            CountryService countryService) {
         this.userFrontRepository = userFrontRepository;
         this.userRoleRepository = userRoleRepository;
         this.userRoleNewRepository = userRoleNewRepository;
         this.addressRepository = addressRepository;
+        this.countryService = countryService;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
@@ -60,6 +63,12 @@ public class UserFrontServiceImpl implements UserFrontService {
         address.setAddressType(request.getAddressType());
 
         UserFrontAddress savedAddress = addressRepository.save(address);
+
+        // Auto-create country if it doesn't exist
+        if (request.getCountry() != null && !request.getCountry().trim().isEmpty()) {
+            countryService.getOrCreateCountry(request.getCountry());
+        }
+
         return convertAddressToDTO(savedAddress);
     }
 
@@ -75,7 +84,7 @@ public class UserFrontServiceImpl implements UserFrontService {
     public void deleteAddress(Long addressId) {
         UserFrontAddress address = addressRepository.findById(addressId)
                 .orElseThrow(() -> new RuntimeException("Address not found"));
-        addressRepository.delete(address);
+        addressRepository.deleteById(address.getUserFrontAddressId());
     }
 
     @Override
@@ -120,6 +129,11 @@ public class UserFrontServiceImpl implements UserFrontService {
             address.setCountry(request.getCountry());
             address.setAddressType("Primary");
             addressRepository.save(address);
+
+            // Auto-create country if it doesn't exist
+            if (request.getCountry() != null && !request.getCountry().trim().isEmpty()) {
+                countryService.getOrCreateCountry(request.getCountry());
+            }
         }
 
         return convertToDTO(userFrontRepository.findById(savedCompany.getUserFrontId()).get());
@@ -167,6 +181,11 @@ public class UserFrontServiceImpl implements UserFrontService {
             address.setCountry(request.getCountry());
             address.setAddressType("Primary");
             addressRepository.save(address);
+
+            // Auto-create country if it doesn't exist
+            if (request.getCountry() != null && !request.getCountry().trim().isEmpty()) {
+                countryService.getOrCreateCountry(request.getCountry());
+            }
         }
 
         return convertToDTO(userFrontRepository.findById(savedBranch.getUserFrontId()).get());
@@ -253,9 +272,9 @@ public class UserFrontServiceImpl implements UserFrontService {
             }
         }
         List<UserRoleNew> roleAssignments = userRoleNewRepository.findByUserFrontId(userFrontId);
-        roleAssignments.forEach(userRoleNewRepository::delete);
+        roleAssignments.forEach(arg0 -> userRoleNewRepository.deleteById(arg0.getUserRoleNewId()));
 
-        userFrontRepository.delete(userFront);
+        userFrontRepository.deleteById(userFront.getUserFrontId());
     }
 
     @Override
@@ -290,7 +309,7 @@ public class UserFrontServiceImpl implements UserFrontService {
                 .findByUserFrontIdAndRoleId(userFrontId, roleId)
                 .orElseThrow(() -> new RuntimeException("Role is not assigned to this user"));
 
-        userRoleNewRepository.delete(userRole);
+        userRoleNewRepository.deleteById(userRole.getUserRoleNewId());
 
         return getUserRoles(userFrontId);
     }
@@ -322,6 +341,22 @@ public class UserFrontServiceImpl implements UserFrontService {
     @Override
     public List<UserRole> getAllRoles() {
         return userRoleRepository.findAll();
+    }
+
+    @Override
+    public List<UserFrontDTO> findByCountry(String countryName) {
+        List<UserFrontAddress> addresses = addressRepository.findAll().stream()
+                .filter(address -> countryName.equalsIgnoreCase(address.getCountry()))
+                .collect(Collectors.toList());
+
+        List<UserFront> users = addresses.stream()
+                .map(UserFrontAddress::getUserFront)
+                .distinct()
+                .collect(Collectors.toList());
+
+        return users.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     @Override

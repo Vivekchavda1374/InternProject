@@ -1,9 +1,18 @@
 package com.vasyerp.rolebasedsystem.repository;
 
 import com.vasyerp.rolebasedsystem.model.SalesItem;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import java.util.List;
+import java.util.Optional;
 
-@Repository
-public interface SalesItemRepository extends JpaRepository<SalesItem, Long> {
+public interface SalesItemRepository {
+
+    SalesItem save(SalesItem salesItem);
+
+    Optional<SalesItem> findById(Long id);
+
+    List<SalesItem> findAll();
+
+    void deleteById(Long id);
+
+    List<SalesItem> findBySales_SalesId(Long salesId);
 }

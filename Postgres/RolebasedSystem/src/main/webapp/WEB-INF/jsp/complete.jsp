@@ -35,6 +35,7 @@
                         <thead class="table-dark">
                             <tr>
                                 <th>ID</th>
+                                <th class="d-none">Order</th>
                                 <th>Company</th>
                                 <th>Branch</th>
                                 <th>Parent</th>
@@ -375,6 +376,7 @@
                     },
                     columns: [
                         { data: 'id' },
+                        { data: 'hierarchyOrder', visible: false },
                         { data: 'companyName', defaultContent: '' },
                         { data: 'branchName', defaultContent: '' },
                         { data: 'parentCompany', defaultContent: '' },
@@ -417,7 +419,7 @@
                     ],
                     scrollX: true,
                     pageLength: 25,
-                    order: [[0, 'asc']]
+                    order: [[1, 'asc']]
                 });
             }
 

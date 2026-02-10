@@ -1,12 +1,18 @@
 package com.vasyerp.rolebasedsystem.repository;
 
 import com.vasyerp.rolebasedsystem.model.UserFrontAddress;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
+import java.util.Optional;
 
-@Repository
-public interface UserFrontAddressRepository extends JpaRepository<UserFrontAddress, Long> {
+public interface UserFrontAddressRepository {
+
+    UserFrontAddress save(UserFrontAddress address);
+
+    Optional<UserFrontAddress> findById(Long id);
+
+    List<UserFrontAddress> findAll();
+
     List<UserFrontAddress> findByUserFront_UserFrontId(Long userFrontId);
+
+    void deleteById(Long id);
 }

@@ -43,4 +43,6 @@ public interface UserFrontService {
     List<UserRole> getAllRoles();
 
     boolean hasRole(Long userFrontId, String roleName);
+
+    List<UserFrontDTO> findByCountry(String countryName);
 }

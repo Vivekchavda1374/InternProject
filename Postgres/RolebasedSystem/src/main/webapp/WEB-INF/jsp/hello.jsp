@@ -31,66 +31,92 @@
                 </div>
                 <div class="card-body">
                     <ul class="nav nav-tabs mb-3">
-                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#data-tab">Data</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#transactions-tab">Transactions</button></li>
+                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab"
+                                data-bs-target="#data-tab">Data</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab"
+                                data-bs-target="#transactions-tab">Transactions</button></li>
                     </ul>
                     <div class="tab-content">
-                    <div class="tab-pane fade show active" id="data-tab">
-                    <div id="accessDenied" class="alert alert-danger" style="display:none;">
-                        <i class="fas fa-exclamation-triangle"></i> Access Denied. You don't have permission to view
-                        this data.
-                    </div>
-                    <table id="completeTable" class="table table-striped table-bordered table-hover table-sm">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>ID</th>
-                                <th>Company</th>
-                                <th>Branch</th>
-                                <th>Parent</th>
-                                <th>GST</th>
-                                <th>Phone</th>
-                                <th>Address</th>
-                                <th>City</th>
-                                <th>State</th>
-                                <th>Country</th>
-                                <th>Role</th>
-                                <th>Product</th>
-                                <th>Item Code</th>
-                                <th>MRP</th>
-                                <th>Selling Price</th>
-                                <th>Stock</th>
-                                <th>Description</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                    </div>
-                    <div class="tab-pane fade" id="transactions-tab">
-                        <div class="mb-3">
-                            <button onclick="openSalesModal()" class="btn btn-success btn-sm me-1"><i class="fas fa-plus"></i> New Sale</button>
-                            <button onclick="openPurchaseModal()" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New Purchase</button>
-                            <button onclick="openExternalPurchaseModal()" class="btn btn-warning btn-sm ms-1"><i class="fas fa-exchange-alt"></i> External Purchase</button>
-                        </div>
-                        <ul class="nav nav-pills mb-3">
-                            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#sales-tab">Sales</button></li>
-                            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#purchase-tab">Purchases</button></li>
-                        </ul>
-                        <div class="tab-content">
-                            <div class="tab-pane fade show active" id="sales-tab">
-                                <table id="salesTable" class="table table-striped table-bordered table-sm">
-                                    <thead class="table-dark"><tr><th>ID</th><th>Company</th><th>Branch</th><th>Sales No</th><th>Total</th><th>Date</th></tr></thead>
-                                    <tbody></tbody>
-                                </table>
+                        <div class="tab-pane fade show active" id="data-tab">
+                            <div id="accessDenied" class="alert alert-danger" style="display:none;">
+                                <i class="fas fa-exclamation-triangle"></i> Access Denied. You don't have permission to
+                                view
+                                this data.
                             </div>
-                            <div class="tab-pane fade" id="purchase-tab">
-                                <table id="purchaseTable" class="table table-striped table-bordered table-sm">
-                                    <thead class="table-dark"><tr><th>ID</th><th>Company</th><th>Branch</th><th>Purchase No</th><th>Total</th><th>Date</th></tr></thead>
-                                    <tbody></tbody>
-                                </table>
+                            <div class="mb-3">
+                                <label for="countryFilter" class="form-label"><i class="fas fa-filter"></i> Filter by
+                                    Country:</label>
+                                <select id="countryFilter" class="form-select" style="max-width: 300px;">
+                                    <option value="">All Countries</option>
+                                </select>
+                            </div>
+                            <table id="completeTable" class="table table-striped table-bordered table-hover table-sm">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Company</th>
+                                        <th>Branch</th>
+                                        <th>GST</th>
+                                        <th>Phone</th>
+                                        <th>Address</th>
+                                        <th>City</th>
+                                        <th>State</th>
+                                        <th>Country</th>
+                                        <th>Product</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="tab-pane fade" id="transactions-tab">
+                            <div class="mb-3">
+                                <button onclick="openSalesModal()" class="btn btn-success btn-sm me-1"><i
+                                        class="fas fa-plus"></i> New Sale</button>
+                                <button onclick="openPurchaseModal()" class="btn btn-primary btn-sm"><i
+                                        class="fas fa-plus"></i> New Purchase</button>
+                                <button onclick="openExternalPurchaseModal()" class="btn btn-warning btn-sm ms-1"><i
+                                        class="fas fa-exchange-alt"></i> External Purchase</button>
+                            </div>
+                            <ul class="nav nav-pills mb-3">
+                                <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab"
+                                        data-bs-target="#sales-tab">Sales</button></li>
+                                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab"
+                                        data-bs-target="#purchase-tab">Purchases</button></li>
+                            </ul>
+                            <div class="tab-content">
+                                <div class="tab-pane fade show active" id="sales-tab">
+                                    <table id="salesTable" class="table table-striped table-bordered table-sm">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Company</th>
+                                                <th>Branch</th>
+                                                <th>Sales No</th>
+                                                <th>Total</th>
+                                                <th>Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                                <div class="tab-pane fade" id="purchase-tab">
+                                    <table id="purchaseTable" class="table table-striped table-bordered table-sm">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Company</th>
+                                                <th>Branch</th>
+                                                <th>Purchase No</th>
+                                                <th>Total</th>
+                                                <th>Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
-                    </div>
                     </div>
                 </div>
             </div>
@@ -379,21 +405,35 @@
         <div class="modal fade" id="salesModal" tabindex="-1">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
-                    <div class="modal-header"><h5 class="modal-title">Create Sale</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Create Sale</h5><button type="button" class="btn-close"
+                            data-bs-dismiss="modal"></button>
+                    </div>
                     <div class="modal-body">
                         <form id="salesForm">
                             <div class="row">
-                                <div class="col-md-6 mb-2"><label>Company</label><select class="form-select" name="companyId" required></select></div>
-                                <div class="col-md-6 mb-2"><label>Branch</label><select class="form-select" name="branchId" required></select></div>
-                                <div class="col-md-4 mb-2"><label>Prefix</label><input type="text" class="form-control" name="prefix" value="INV"></div>
-                                <div class="col-md-8 mb-2"><label>Sales No</label><input type="text" class="form-control" name="salesNo" required></div>
+                                <div class="col-md-6 mb-2"><label>Company</label><select class="form-select"
+                                        name="companyId" required></select></div>
+                                <div class="col-md-6 mb-2"><label>Branch</label><select class="form-select"
+                                        name="branchId" required></select></div>
+                                <div class="col-md-4 mb-2"><label>Prefix</label><input type="text" class="form-control"
+                                        name="prefix" value="INV"></div>
+                                <div class="col-md-8 mb-2"><label>Sales No</label><input type="text"
+                                        class="form-control" name="salesNo" required></div>
                             </div>
-                            <hr><h6>Items <button type="button" class="btn btn-sm btn-primary float-end" onclick="addSalesItem()"><i class="fas fa-plus"></i></button></h6>
+                            <hr>
+                            <h6>Items <button type="button" class="btn btn-sm btn-primary float-end"
+                                    onclick="addSalesItem()"><i class="fas fa-plus"></i></button></h6>
                             <div id="salesItems"></div>
-                            <div class="text-end mt-3"><h5>Total: ₹<span id="salesTotal">0.00</span></h5><input type="hidden" name="totalAmount" id="salesTotalInput"></div>
+                            <div class="text-end mt-3">
+                                <h5>Total: ₹<span id="salesTotal">0.00</span></h5><input type="hidden"
+                                    name="totalAmount" id="salesTotalInput">
+                            </div>
                         </form>
                     </div>
-                    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-success" onclick="saveSales()">Create</button></div>
+                    <div class="modal-footer"><button type="button" class="btn btn-secondary"
+                            data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-success"
+                            onclick="saveSales()">Create</button></div>
                 </div>
             </div>
         </div>
@@ -401,21 +441,35 @@
         <div class="modal fade" id="purchaseModal" tabindex="-1">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
-                    <div class="modal-header"><h5 class="modal-title">Create Purchase</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Create Purchase</h5><button type="button" class="btn-close"
+                            data-bs-dismiss="modal"></button>
+                    </div>
                     <div class="modal-body">
                         <form id="purchaseForm">
                             <div class="row">
-                                <div class="col-md-6 mb-2"><label>Company</label><select class="form-select" name="companyId" required></select></div>
-                                <div class="col-md-6 mb-2"><label>Branch</label><select class="form-select" name="branchId" required></select></div>
-                                <div class="col-md-4 mb-2"><label>Prefix</label><input type="text" class="form-control" name="prefix" value="PO"></div>
-                                <div class="col-md-8 mb-2"><label>Purchase No</label><input type="text" class="form-control" name="purchaseNo" required></div>
+                                <div class="col-md-6 mb-2"><label>Company</label><select class="form-select"
+                                        name="companyId" required></select></div>
+                                <div class="col-md-6 mb-2"><label>Branch</label><select class="form-select"
+                                        name="branchId" required></select></div>
+                                <div class="col-md-4 mb-2"><label>Prefix</label><input type="text" class="form-control"
+                                        name="prefix" value="PO"></div>
+                                <div class="col-md-8 mb-2"><label>Purchase No</label><input type="text"
+                                        class="form-control" name="purchaseNo" required></div>
                             </div>
-                            <hr><h6>Items <button type="button" class="btn btn-sm btn-primary float-end" onclick="addPurchaseItem()"><i class="fas fa-plus"></i></button></h6>
+                            <hr>
+                            <h6>Items <button type="button" class="btn btn-sm btn-primary float-end"
+                                    onclick="addPurchaseItem()"><i class="fas fa-plus"></i></button></h6>
                             <div id="purchaseItems"></div>
-                            <div class="text-end mt-3"><h5>Total: ₹<span id="purchaseTotal">0.00</span></h5><input type="hidden" name="totalAmount" id="purchaseTotalInput"></div>
+                            <div class="text-end mt-3">
+                                <h5>Total: ₹<span id="purchaseTotal">0.00</span></h5><input type="hidden"
+                                    name="totalAmount" id="purchaseTotalInput">
+                            </div>
                         </form>
                     </div>
-                    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-primary" onclick="savePurchase()">Create</button></div>
+                    <div class="modal-footer"><button type="button" class="btn btn-secondary"
+                            data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-primary"
+                            onclick="savePurchase()">Create</button></div>
                 </div>
             </div>
         </div>
@@ -481,24 +535,114 @@
                     }
 
                     loadTable();
+                    loadCountries();
                     setTimeout(loadTransactionData, 500);
                 }).fail(function () {
                     window.location.href = '/login';
                 });
             });
 
+            function loadCountries() {
+                $.get('/api/countries', function (response) {
+                    if (response.success && response.data) {
+                        const select = $('#countryFilter');
+                        response.data.forEach(country => {
+                            select.append(new Option(country.name, country.name));
+                        });
+                    }
+                }).fail(function () {
+                    console.error('Failed to load countries');
+                });
+
+                $('#countryFilter').on('change', function () {
+                    const selectedCountry = $(this).val();
+                    if (selectedCountry) {
+                        filterByCountry(selectedCountry);
+                    } else {
+                        loadTable();
+                    }
+                });
+            }
+
+            function filterByCountry(country) {
+                if (table) {
+                    table.destroy();
+                }
+
+                table = $('#completeTable').DataTable({
+                    ajax: {
+                        url: '/api/user-front/search/country?country=' + encodeURIComponent(country),
+                        dataSrc: 'data',
+                        error: function (xhr, error, thrown) {
+                            console.error('Error loading filtered data:', error, thrown);
+                            alert('Error loading filtered data. Please check the console for details.');
+                        }
+                    },
+                    columns: [
+                        { data: 'userFrontId' },
+                        { data: null, defaultContent: '', render: (data) => data.parentCompanyId ? '' : data.name },
+                        { data: null, defaultContent: '', render: (data) => data.parentCompanyId ? data.name : '' },
+                        { data: 'gstNo', defaultContent: '' },
+                        { data: 'phoneNo', defaultContent: '' },
+                        {
+                            data: null,
+                            defaultContent: '',
+                            render: (data) => {
+                                if (data.addresses && data.addresses.length > 0) {
+                                    let addr = [];
+                                    const address = data.addresses[0];
+                                    if (address.addressLine1) addr.push(address.addressLine1);
+                                    if (address.addressLine2) addr.push(address.addressLine2);
+                                    return addr.join(', ');
+                                }
+                                return '';
+                            }
+                        },
+                        {
+                            data: null,
+                            defaultContent: '',
+                            render: (data) => data.addresses && data.addresses.length > 0 ? data.addresses[0].city || '' : ''
+                        },
+                        {
+                            data: null,
+                            defaultContent: '',
+                            render: (data) => data.addresses && data.addresses.length > 0 ? data.addresses[0].state || '' : ''
+                        },
+                        {
+                            data: null,
+                            defaultContent: '',
+                            render: (data) => data.addresses && data.addresses.length > 0 ? data.addresses[0].country || '' : ''
+                        },
+                        { data: null, defaultContent: '0' },
+                        {
+                            data: null,
+                            render: function (data, type, row) {
+                                let buttons = '';
+                                buttons += '<button class="btn btn-warning btn-sm me-1" onclick="openEditCompanyModal(' + row.userFrontId + ', \'' + (row.name || '').replace(/'/g, "\\'") + '\')" title="Edit"><i class="fas fa-edit"></i> Edit</button>';
+                                buttons += '<button class="btn btn-info btn-sm me-1" onclick="openCreateProductForEntity(' + row.userFrontId + ', \'' + row.name.replace(/'/g, "\\'") + '\')" title="Add Product"><i class="fas fa-plus"></i> Prod</button>';
+                                buttons += '<button class="btn btn-danger btn-sm" onclick="openDeleteModal(' + row.userFrontId + ', \'UserFront\')" title="Delete"><i class="fas fa-trash"></i></button>';
+                                return buttons;
+                            }
+                        }
+                    ],
+                    scrollX: true,
+                    pageLength: 25,
+                    order: [[0, 'asc']]
+                });
+            }
+
             function loadTransactionData() {
-                $.get('/api/user-front/companies/' + currentUserId, function(r) { 
+                $.get('/api/user-front/companies/' + currentUserId, function (r) {
                     companies = r.data || [];
                     if (salesTable) salesTable.ajax.reload(null, false);
                     if (purchaseTable) purchaseTable.ajax.reload(null, false);
                 });
-                
+
                 $.ajax({
                     url: '/api/complete',
                     type: 'GET',
                     headers: { 'userId': currentUserId, 'isAdmin': currentUserIsAdmin },
-                    success: function(data) {
+                    success: function (data) {
                         products = (data || []).filter(item => item.type === 'Product').map(p => ({
                             id: p.id,
                             productName: p.productName,
@@ -508,12 +652,12 @@
                         }));
                     }
                 });
-                
-                
+
+
                 salesTable = $('#salesTable').DataTable({
-                    ajax: { 
-                        url: '/api/sales', 
-                        dataSrc: function(json) {
+                    ajax: {
+                        url: '/api/sales',
+                        dataSrc: function (json) {
                             if (currentUserIsAdmin) {
                                 return json.data || [];
                             } else {
@@ -532,9 +676,9 @@
                 });
 
                 purchaseTable = $('#purchaseTable').DataTable({
-                    ajax: { 
-                        url: '/api/purchases', 
-                        dataSrc: function(json) {
+                    ajax: {
+                        url: '/api/purchases',
+                        dataSrc: function (json) {
                             if (currentUserIsAdmin) {
                                 return json.data || [];
                             } else {
@@ -591,7 +735,6 @@
                         { data: 'id' },
                         { data: 'companyName', defaultContent: '' },
                         { data: 'branchName', defaultContent: '' },
-                        { data: 'parentCompany', defaultContent: '' },
                         { data: 'gstNo', defaultContent: '' },
                         { data: 'phoneNo', defaultContent: '' },
                         {
@@ -607,18 +750,13 @@
                         { data: 'city', defaultContent: '' },
                         { data: 'state', defaultContent: '' },
                         { data: 'country', defaultContent: '' },
-                        { data: 'roleName', defaultContent: '' },
-                        { data: 'productName', defaultContent: '' },
-                        { data: 'itemCode', defaultContent: '' },
-                        { data: 'mrp', defaultContent: '', render: (data) => data ? '₹' + data : '' },
-                        { data: 'sellingPrice', defaultContent: '', render: (data) => data ? '₹' + data : '' },
-                        { data: 'stockQuantity', defaultContent: '' },
-                        { data: 'description', defaultContent: '' },
+                        { data: 'productCount', defaultContent: '0' },
                         {
                             data: null,
                             render: function (data, type, row) {
                                 let buttons = '';
                                 if (row.type === 'Product') {
+                                    // Should not happen with new backend logic, but keeping for safety or if logic reverts
                                     buttons += '<button class="btn btn-warning btn-sm me-1" onclick="openEditModal(this)" title="Edit Product"><i class="fas fa-edit"></i> Prod</button>';
                                     buttons += '<button class="btn btn-info btn-sm me-1" onclick="openEditCompanyModal(' + row.userFrontId + ', \'' + (row.companyName || row.branchName || '').replace(/'/g, "\\'") + '\')" title="Edit Company/Branch"><i class="fas fa-building"></i> Co.</button>';
                                 } else {
@@ -682,7 +820,7 @@
                     const company = companies.find(c => c.name === companyId);
                     companyId = company ? (company.userFrontId ?? company.id) : null;
                 }
-                
+
                 companyId = parseInt(companyId);
                 if (!companyId || isNaN(companyId)) {
                     alert('Invalid company selection. Please select a valid company.');
@@ -1091,11 +1229,11 @@
                     $('#salesForm [name="branchId"]').val(currentUserId).prop('disabled', true);
                     filterProducts('#salesForm', currentUserId);
                 }
-                setTimeout(function() {
-                    $('#salesForm [name="companyId"]').off('change').on('change', function() { 
+                setTimeout(function () {
+                    $('#salesForm [name="companyId"]').off('change').on('change', function () {
                         const selectedOption = $(this).find('option:selected');
                         const companyId = selectedOption.val();
-                        filterProducts('#salesForm', companyId); 
+                        filterProducts('#salesForm', companyId);
                     });
                 }, 100);
                 $('#salesModal').modal('show');
@@ -1111,11 +1249,11 @@
                     $('#purchaseForm [name="branchId"]').val(currentUserId).prop('disabled', true);
                     filterProducts('#purchaseForm', currentUserId);
                 }
-                setTimeout(function() {
-                    $('#purchaseForm [name="companyId"]').off('change').on('change', function() { 
+                setTimeout(function () {
+                    $('#purchaseForm [name="companyId"]').off('change').on('change', function () {
                         const selectedOption = $(this).find('option:selected');
                         const companyId = selectedOption.val();
-                        filterProducts('#purchaseForm', companyId); 
+                        filterProducts('#purchaseForm', companyId);
                     });
                 }, 100);
                 $('#purchaseModal').modal('show');
@@ -1148,8 +1286,8 @@
                 // Find the actual numeric ID from companies array
                 const company = companies.find(c => c.name === companyId || (c.userFrontId ?? c.id) == companyId);
                 const actualCompanyId = company ? (company.userFrontId ?? company.id) : companyId;
-                
-                $(formSelector + ' .product-select').each(function() {
+
+                $(formSelector + ' .product-select').each(function () {
                     const sel = $(this);
                     sel.empty().append('<option value="">Select Product...</option>');
                     if (externalPurchaseMode && formSelector === '#purchaseForm') {
@@ -1171,7 +1309,7 @@
                 $.ajax({
                     url: '/api/complete',
                     type: 'GET',
-                    success: function(data) {
+                    success: function (data) {
                         products = (data || []).filter(item => item.type === 'Product').map(p => ({
                             id: p.id,
                             productName: p.productName,
@@ -1181,14 +1319,14 @@
                         }));
                         if (callback) callback();
                     },
-                    error: function() {
+                    error: function () {
                         alert('Failed to load external products');
                     }
                 });
             }
 
             function populateSelects(formSelector) {
-                $(formSelector + ' [name="companyId"], ' + formSelector + ' [name="branchId"]').each(function() {
+                $(formSelector + ' [name="companyId"], ' + formSelector + ' [name="branchId"]').each(function () {
                     const sel = $(this);
                     sel.empty().append('<option value="">Select...</option>');
                     companies.forEach(c => {
@@ -1258,7 +1396,7 @@
 
             function calcTotal() {
                 let total = 0;
-                $('.sales-item, .purchase-item').each(function() {
+                $('.sales-item, .purchase-item').each(function () {
                     const qty = parseFloat($(this).find('.quantity').val()) || 0;
                     const price = parseFloat($(this).find('.price').val()) || 0;
                     total += qty * price;
@@ -1270,7 +1408,7 @@
             function saveSales() {
                 const form = $('#salesForm');
                 const items = [];
-                $('#salesItems .sales-item').each(function() {
+                $('#salesItems .sales-item').each(function () {
                     items.push({
                         productId: parseInt($(this).find('.product-select').val()),
                         quantity: parseFloat($(this).find('.quantity').val()),
@@ -1280,7 +1418,7 @@
 
                 const companyId = parseInt(form.find('[name="companyId"]').val());
                 const branchId = parseInt(form.find('[name="branchId"]').val());
-                
+
                 if (!companyId || !branchId || isNaN(companyId) || isNaN(branchId)) {
                     alert('Please select both Company and Branch');
                     return;
@@ -1300,12 +1438,12 @@
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(data),
-                    success: function() {
+                    success: function () {
                         $('#salesModal').modal('hide');
                         salesTable.ajax.reload();
                         alert('Sale created successfully');
                     },
-                    error: function(xhr) {
+                    error: function (xhr) {
                         alert('Error: ' + (xhr.responseJSON?.message || 'Unknown error'));
                     }
                 });
@@ -1315,7 +1453,7 @@
                 const form = $('#purchaseForm');
                 const items = [];
                 let invalidItem = false;
-                $('#purchaseItems .purchase-item').each(function() {
+                $('#purchaseItems .purchase-item').each(function () {
                     const productId = parseInt($(this).find('.product-select').val());
                     const quantity = parseFloat($(this).find('.quantity').val());
                     const purchasePrice = parseFloat($(this).find('.price').val());
@@ -1337,7 +1475,7 @@
 
                 const companyId = parseInt(form.find('[name="companyId"]').val());
                 const branchId = parseInt(form.find('[name="branchId"]').val());
-                
+
                 if (!companyId || !branchId || isNaN(companyId) || isNaN(branchId)) {
                     alert('Please select both Company and Branch');
                     return;
@@ -1358,12 +1496,12 @@
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(data),
-                    success: function() {
+                    success: function () {
                         $('#purchaseModal').modal('hide');
                         purchaseTable.ajax.reload();
                         alert('Purchase created successfully');
                     },
-                    error: function(xhr) {
+                    error: function (xhr) {
                         alert('Error: ' + (xhr.responseJSON?.message || 'Unknown error'));
                     }
                 });

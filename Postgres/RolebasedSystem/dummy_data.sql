@@ -1,8 +1,165 @@
+-- Transaction item tables
+DROP TABLE IF EXISTS purchase_item;
+DROP TABLE IF EXISTS sales_item;
+
+-- Transaction master tables
+DROP TABLE IF EXISTS purchase;
+DROP TABLE IF EXISTS sales;
+
+-- Product
+DROP TABLE IF EXISTS product;
+
+-- User roles mapping
+DROP TABLE IF EXISTS user_role_new;
+DROP TABLE IF EXISTS user_role;
+
+-- Contact tables
+DROP TABLE IF EXISTS contact_address;
+DROP TABLE IF EXISTS contact;
+
+-- Company / Branch (self-referencing table)
+DROP TABLE IF EXISTS user_front;
+
+CREATE TABLE user_front (
+                            user_front_id BIGSERIAL PRIMARY KEY,
+                            name VARCHAR(150) NOT NULL,
+                            username VARCHAR(50) UNIQUE NOT NULL,
+                            password VARCHAR(255) NOT NULL,
+                            parent_company_id INT,
+                            gst_no VARCHAR(20),
+                            phone_no VARCHAR(15),
+                            CONSTRAINT fk_parent_company
+                                FOREIGN KEY (parent_company_id)
+                                    REFERENCES user_front(user_front_id)
+                                    ON DELETE CASCADE
+);
+CREATE TABLE contact (
+                         contact_id BIGSERIAL PRIMARY KEY,
+                         contact_type VARCHAR(20) CHECK (contact_type IN ('CUSTOMER','SUPPLIER')) NOT NULL,
+                         whatsapp_no VARCHAR(15),
+                         pan_no VARCHAR(20)
+);
+
+
+CREATE TABLE contact_address (
+                                 contact_address_id BIGSERIAL PRIMARY KEY,
+                                 contact_id INT NOT NULL,
+                                 address_line_1 VARCHAR(255),
+                                 address_line_2 VARCHAR(255),
+                                 city_name VARCHAR(100),
+                                 state_name VARCHAR(100),
+                                 country_name VARCHAR(100),
+                                 mob_no VARCHAR(15),
+                                 CONSTRAINT fk_contact
+                                     FOREIGN KEY (contact_id)
+                                         REFERENCES contact(contact_id)
+                                         ON DELETE CASCADE
+);
+
+CREATE TABLE user_role (
+                           role_id BIGSERIAL PRIMARY KEY,
+                           role_name VARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE user_role_new (
+                               user_role_new_id BIGSERIAL PRIMARY KEY,
+                               role_id INT NOT NULL,
+                               user_front_id INT NOT NULL,
+                               CONSTRAINT fk_role
+                                   FOREIGN KEY (role_id)
+                                       REFERENCES user_role(role_id),
+                               CONSTRAINT fk_user_front
+                                   FOREIGN KEY (user_front_id)
+                                       REFERENCES user_front(user_front_id)
+);
+CREATE TABLE product (
+                         product_id BIGSERIAL PRIMARY KEY,
+                         product_name VARCHAR(150) NOT NULL,
+                         company_id INT NOT NULL,
+                         item_code VARCHAR(50),
+                         CONSTRAINT fk_product_company
+                             FOREIGN KEY (company_id)
+                                 REFERENCES user_front(user_front_id)
+);
+
+CREATE TABLE sales (
+                       sales_id BIGSERIAL PRIMARY KEY,
+                       contact_id INT NOT NULL,
+                       company_id INT NOT NULL,
+                       branch_id INT NOT NULL,
+                       prefix VARCHAR(10),
+                       sales_no VARCHAR(50),
+                       total_amount NUMERIC(12,2),
+                       sales_date DATE,
+                       CONSTRAINT fk_sales_contact FOREIGN KEY (contact_id) REFERENCES contact(contact_id),
+                       CONSTRAINT fk_sales_company FOREIGN KEY (company_id) REFERENCES user_front(user_front_id),
+                       CONSTRAINT fk_sales_branch FOREIGN KEY (branch_id) REFERENCES user_front(user_front_id)
+);
+
+CREATE TABLE purchase (
+                          purchase_id BIGSERIAL PRIMARY KEY,
+                          contact_id INT NOT NULL,
+                          company_id INT NOT NULL,
+                          branch_id INT NOT NULL,
+                          prefix VARCHAR(10),
+                          purchase_no VARCHAR(50),
+                          total_amount NUMERIC(12,2),
+                          purchase_date DATE,
+                          CONSTRAINT fk_purchase_contact FOREIGN KEY (contact_id) REFERENCES contact(contact_id),
+                          CONSTRAINT fk_purchase_company FOREIGN KEY (company_id) REFERENCES user_front(user_front_id),
+                          CONSTRAINT fk_purchase_branch FOREIGN KEY (branch_id) REFERENCES user_front(user_front_id)
+);
+
+CREATE TABLE sales_item (
+                            sales_item_id BIGSERIAL PRIMARY KEY,
+                            sales_id INT NOT NULL,
+                            product_id INT NOT NULL,
+                            quantity float8 NOT NULL,
+                            selling_price NUMERIC(10,2),
+                            CONSTRAINT fk_sales_item_sales FOREIGN KEY (sales_id) REFERENCES sales(sales_id) ON DELETE CASCADE,
+                            CONSTRAINT fk_sales_item_product FOREIGN KEY (product_id) REFERENCES product(product_id)
+);
+
+CREATE TABLE purchase_item (
+                               purchase_item_id BIGSERIAL PRIMARY KEY,
+                               purchase_id INT NOT NULL,
+                               product_id INT NOT NULL,
+                               quantity float8 NOT NULL,
+                               purchase_price NUMERIC(10,2),
+                               CONSTRAINT fk_purchase_item_purchase FOREIGN KEY (purchase_id) REFERENCES purchase(purchase_id) ON DELETE CASCADE,
+                               CONSTRAINT fk_purchase_item_product FOREIGN KEY (product_id) REFERENCES product(product_id)
+);
+
+
+
+
+CREATE TABLE user_front_address (
+    user_front_address_id BIGSERIAL PRIMARY KEY,
+    user_front_id INT NOT NULL,
+    name VARCHAR(150),
+    address_line_1 VARCHAR(255),
+    address_line_2 VARCHAR(255),
+    city VARCHAR(100),
+    state VARCHAR(100),
+    country VARCHAR(100),
+    CONSTRAINT fk_user_front_address
+        FOREIGN KEY (user_front_id)
+        REFERENCES user_front(user_front_id)
+        ON DELETE CASCADE
+);
+
+ALTER TABLE product
+ADD COLUMN mrp NUMERIC(10,2),
+ADD COLUMN selling_price NUMERIC(10,2),
+ADD COLUMN description TEXT,
+ADD COLUMN stock_quantity FLOAT8;
+
+
 -- Clear existing data (optional, careful with production!)
 TRUNCATE TABLE user_role_new, product, user_front_address, user_front, user_role RESTART IDENTITY CASCADE;
 
 -- 1. Insert Roles
-INSERT INTO user_role (role_name) VALUES 
+INSERT INTO user_role (role_name) VALUES
 ('ADMIN'),
 ('COMPANY'),
 ('BRANCH')
@@ -30,7 +187,7 @@ INSERT INTO user_front_address (user_front_id, name, address_line_1, address_lin
 (6, 'RetailHub_Branch_X', 'Downtown', 'Mall Road', 'Chicago', 'IL', 'USA');
 
 -- 4. Assign Roles (user_role_new)
--- Assuming Role IDs: 1=ADMIN, 2=COMPANY, 3=BRANCH. 
+-- Assuming Role IDs: 1=ADMIN, 2=COMPANY, 3=BRANCH.
 -- User IDs: 1=admin, 2=TechCorp, 3=RetailHub, 4=TechCorp_Branch_A, 5=TechCorp_Branch_B, 6=RetailHub_Branch_X
 INSERT INTO user_role_new (role_id, user_front_id) VALUES
 (1, 1), -- admin -> ADMIN
@@ -253,7 +410,7 @@ select * from user_front;
 TRUNCATE TABLE user_role_new, product, user_front_address, user_front, user_role RESTART IDENTITY CASCADE;
 
 -- 1. Insert Roles
-INSERT INTO user_role (role_name) VALUES 
+INSERT INTO user_role (role_name) VALUES
 ('ADMIN'),
 ('COMPANY'),
 ('BRANCH')
@@ -281,7 +438,7 @@ INSERT INTO user_front_address (user_front_id, name, address_line_1, address_lin
 (6, 'RetailHub_Branch_X', 'Downtown', 'Mall Road', 'Chicago', 'IL', 'USA');
 
 -- 4. Assign Roles (user_role_new)
--- Assuming Role IDs: 1=ADMIN, 2=COMPANY, 3=BRANCH. 
+-- Assuming Role IDs: 1=ADMIN, 2=COMPANY, 3=BRANCH.
 -- User IDs: 1=admin, 2=TechCorp, 3=RetailHub, 4=TechCorp_Branch_A, 5=TechCorp_Branch_B, 6=RetailHub_Branch_X
 INSERT INTO user_role_new (role_id, user_front_id) VALUES
 (1, 1), -- admin -> ADMIN
@@ -322,10 +479,10 @@ DELETE FROM user_role_new WHERE user_front_id = 1;
 INSERT INTO user_role_new (role_id, user_front_id) VALUES (1, 1);
 
 -- Verify the fix
-SELECT uf.user_front_id, uf.name, ur.role_name 
-FROM user_front uf 
-JOIN user_role_new urn ON uf.user_front_id = urn.user_front_id 
-JOIN user_role ur ON urn.role_id = ur.role_id 
+SELECT uf.user_front_id, uf.name, ur.role_name
+FROM user_front uf
+JOIN user_role_new urn ON uf.user_front_id = urn.user_front_id
+JOIN user_role ur ON urn.role_id = ur.role_id
 WHERE uf.name = 'admin';
 
 DELETE FROM user_role_new WHERE user_front_id = 1;
@@ -339,10 +496,10 @@ DELETE FROM user_role_new WHERE user_front_id = 1;
 INSERT INTO user_role_new (user_front_id, role_id) VALUES (1, 1);
 
 -- Verify
-SELECT uf.user_front_id, uf.name, urn.role_id, ur.role_name 
-FROM user_front uf 
-LEFT JOIN user_role_new urn ON uf.user_front_id = urn.user_front_id 
-LEFT JOIN user_role ur ON urn.role_id = ur.role_id 
+SELECT uf.user_front_id, uf.name, urn.role_id, ur.role_name
+FROM user_front uf
+LEFT JOIN user_role_new urn ON uf.user_front_id = urn.user_front_id
+LEFT JOIN user_role ur ON urn.role_id = ur.role_id
 WHERE uf.user_front_id = 1;
 
 
@@ -365,21 +522,21 @@ truncate table  user_role_new
 -- Password: Admin@123
 
 -- First, ensure the ADMIN role exists
-INSERT INTO user_role (role_id, role_name) 
-VALUES (1, 'ADMIN') 
+INSERT INTO user_role (role_id, role_name)
+VALUES (1, 'ADMIN')
 ON CONFLICT (role_id) DO NOTHING;
 
 -- Create the admin user (password is BCrypt hash of "Admin@123")
 INSERT INTO user_front (user_front_id, name, password, parent_company_id, gst_no, phone_no)
 VALUES (
-    1, 
-    'admin', 
+    1,
+    'admin',
     '$2a$12$X6VmPZkZ1wJpyaTfsnTCKeXZREC0LDdqdZc1DoqW0I/igejdbyTye',
     NULL,
     NULL,
     NULL
 )
-ON CONFLICT (user_front_id) DO UPDATE 
+ON CONFLICT (user_front_id) DO UPDATE
 SET name = 'admin',
     password = '$2a$12$X6VmPZkZ1wJpyaTfsnTCKeXZREC0LDdqdZc1DoqW0I/igejdbyTye',
     parent_company_id = NULL;
@@ -390,7 +547,7 @@ VALUES (1, 1)
 ON CONFLICT DO NOTHING;
 
 -- Verify the admin user
-SELECT 
+SELECT
     uf.user_front_id,
     uf.name,
     uf.parent_company_id,
@@ -401,6 +558,9 @@ LEFT JOIN user_role ur ON urn.role_id = ur.role_id
 WHERE uf.name = 'admin';
 
 select * from user_front
+
+ALTER TABLE sales ALTER COLUMN contact_id DROP NOT NULL;
+ALTER TABLE purchase ALTER COLUMN contact_id DROP NOT NULL;
 
 
 

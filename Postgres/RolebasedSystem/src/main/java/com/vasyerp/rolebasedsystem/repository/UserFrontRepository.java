@@ -1,14 +1,16 @@
 package com.vasyerp.rolebasedsystem.repository;
 
 import com.vasyerp.rolebasedsystem.model.UserFront;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
 
-@Repository
-public interface UserFrontRepository extends JpaRepository<UserFront, Long> {
+public interface UserFrontRepository {
+
+    UserFront save(UserFront userFront);
+
+    Optional<UserFront> findById(Long id);
+
+    List<UserFront> findAll();
 
     Optional<UserFront> findByName(String name);
 
@@ -18,4 +20,7 @@ public interface UserFrontRepository extends JpaRepository<UserFront, Long> {
 
     boolean existsByParentCompany(UserFront parentCompany);
 
+    boolean existsById(Long id);
+
+    void deleteById(Long id);
 }

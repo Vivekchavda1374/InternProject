@@ -149,6 +149,18 @@ public class UserFrontController {
         }
     }
 
+    @GetMapping("/search/country")
+    public ResponseEntity<ApiResponse<List<UserFrontDTO>>> searchByCountry(
+            @RequestParam String country) {
+        try {
+            List<UserFrontDTO> users = userFrontService.findByCountry(country);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Users found", users));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
     @GetMapping("/roles/all")
     public ResponseEntity<ApiResponse<List<UserRole>>> getAllRoles() {
         try {

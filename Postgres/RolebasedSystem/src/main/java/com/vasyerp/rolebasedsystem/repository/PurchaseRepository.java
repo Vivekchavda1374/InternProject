@@ -1,12 +1,20 @@
 package com.vasyerp.rolebasedsystem.repository;
 
 import com.vasyerp.rolebasedsystem.model.Purchase;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.util.Optional;
 
-@Repository
-public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
+public interface PurchaseRepository {
+
+    Purchase save(Purchase purchase);
+
+    Optional<Purchase> findById(Long id);
+
+    List<Purchase> findAll();
+
     List<Purchase> findByBranch_UserFrontId(Long branchId);
+
     List<Purchase> findByCompany_UserFrontId(Long companyId);
+
+    void deleteById(Long id);
 }

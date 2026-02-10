@@ -25,23 +25,37 @@ public class CompleteDataServiceImpl implements CompleteDataService {
     @Override
     public List<CompleteDataDTO> getAllData() {
         List<CompleteDataDTO> result = new ArrayList<>();
+        long hierarchyOrderArray[] = { 1 };
 
         var users = userFrontRepository.findAll();
         var products = productRepository.findAll();
 
         var productsByCompany = products.stream()
-                .collect(Collectors.groupingBy(Product::getCompanyId));
+                .collect(Collectors.groupingBy(Product::getCompanyId, Collectors.counting()));
 
-        users.forEach(user -> {
-            List<Product> userProducts = productsByCompany
-                    .getOrDefault(user.getUserFrontId(), new ArrayList<>());
+        List<UserFront> companies = users.stream()
+                .filter(u -> u.getParentCompany() == null)
+                .sorted((c1, c2) -> c1.getUserFrontId().compareTo(c2.getUserFrontId()))
+                .collect(Collectors.toList());
 
-            if (userProducts.isEmpty()) {
-                result.add(createDTO(user, null));
-            } else {
-                userProducts.forEach(product -> result.add(createDTO(user, product)));
+        var branchesByCompany = users.stream()
+                .filter(u -> u.getParentCompany() != null)
+                .collect(Collectors.groupingBy(u -> u.getParentCompany().getUserFrontId()));
+
+        for (UserFront company : companies) {
+            Long companyProductCount = productsByCompany.getOrDefault(company.getUserFrontId(), 0L);
+            result.add(createDTO(company, companyProductCount, hierarchyOrderArray[0]++));
+
+            // Add Branches for this Company
+            List<UserFront> companyBranches = branchesByCompany.getOrDefault(company.getUserFrontId(),
+                    new ArrayList<>());
+            companyBranches.sort((b1, b2) -> b1.getUserFrontId().compareTo(b2.getUserFrontId()));
+
+            for (UserFront branch : companyBranches) {
+                Long branchProductCount = productsByCompany.getOrDefault(branch.getUserFrontId(), 0L);
+                result.add(createDTO(branch, branchProductCount, hierarchyOrderArray[0]++));
             }
-        });
+        }
 
         return result;
     }
@@ -53,6 +67,7 @@ public class CompleteDataServiceImpl implements CompleteDataService {
         }
 
         List<CompleteDataDTO> result = new ArrayList<>();
+        long hierarchyOrderArray[] = { 1 };
         var userOpt = userFrontRepository.findById(userId);
 
         if (userOpt.isEmpty()) {
@@ -80,23 +95,17 @@ public class CompleteDataServiceImpl implements CompleteDataService {
                 .collect(Collectors.toList());
 
         var productsByCompany = products.stream()
-                .collect(Collectors.groupingBy(Product::getCompanyId));
+                .collect(Collectors.groupingBy(Product::getCompanyId, Collectors.counting()));
 
         relevantUsers.forEach(user -> {
-            List<Product> userProducts = productsByCompany
-                    .getOrDefault(user.getUserFrontId(), new ArrayList<>());
-
-            if (userProducts.isEmpty()) {
-                result.add(createDTO(user, null));
-            } else {
-                userProducts.forEach(product -> result.add(createDTO(user, product)));
-            }
+            Long count = productsByCompany.getOrDefault(user.getUserFrontId(), 0L);
+            result.add(createDTO(user, count, hierarchyOrderArray[0]++));
         });
 
         return result;
     }
 
-    private CompleteDataDTO createDTO(UserFront user, Product product) {
+    private CompleteDataDTO createDTO(UserFront user, Long productCount, Long hierarchyOrder) {
         CompleteDataDTO dto = new CompleteDataDTO();
 
         dto.setCompanyName(user.getParentCompany() == null ? user.getName() : null);
@@ -121,19 +130,11 @@ public class CompleteDataServiceImpl implements CompleteDataService {
 
         dto.setUserFrontId(user.getUserFrontId());
 
-        if (product != null) {
-            dto.setId(product.getProductId());
-            dto.setType("Product");
-            dto.setProductName(product.getProductName());
-            dto.setItemCode(product.getItemCode());
-            dto.setMrp(product.getMrp());
-            dto.setSellingPrice(product.getSellingPrice());
-            dto.setDescription(product.getDescription());
-            dto.setStockQuantity(product.getStockQuantity());
-        } else {
-            dto.setId(user.getUserFrontId());
-            dto.setType(user.getParentCompany() == null ? "Company" : "Branch");
-        }
+        dto.setProductCount(productCount != null ? productCount : 0L);
+        dto.setHierarchyOrder(hierarchyOrder);
+
+        dto.setId(user.getUserFrontId());
+        dto.setType(user.getParentCompany() == null ? "Company" : "Branch");
 
         return dto;
     }

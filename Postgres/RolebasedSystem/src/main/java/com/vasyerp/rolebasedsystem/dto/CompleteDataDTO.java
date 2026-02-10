@@ -29,4 +29,6 @@ public class CompleteDataDTO {
     private String description;
     private Double stockQuantity;
     private Long userFrontId;
+    private Long productCount;
+    private Long hierarchyOrder;
 }
