@@ -31,6 +31,12 @@
                         <i class="fas fa-exclamation-triangle"></i> Access Denied. You don't have permission to view
                         this data.
                     </div>
+                    <div class="mb-3">
+                        <label for="countryFilter" class="form-label">Filter by Country:</label>
+                        <select id="countryFilter" class="form-select" style="width: 200px;">
+                            <option value="">All Countries</option>
+                        </select>
+                    </div>
                     <table id="completeTable" class="table table-striped table-bordered table-hover table-sm">
                         <thead class="table-dark">
                             <tr>
@@ -366,9 +372,15 @@
                     table.ajax.reload();
                     return;
                 }
+                
+                loadCountries();
+                
                 table = $('#completeTable').DataTable({
                     ajax: {
                         url: '/api/complete',
+                        data: function(d) {
+                            d.country = $('#countryFilter').val();
+                        },
                         dataSrc: '',
                         error: function () {
                             alert('Error loading data. Please check your permissions.');
@@ -785,6 +797,21 @@
                 });
                 return json;
             }
+
+            function loadCountries() {
+                $.get('/api/countries', function(response) {
+                    if (response.success && response.data) {
+                        const select = $('#countryFilter');
+                        response.data.forEach(country => {
+                            select.append(new Option(country.name, country.name));
+                        });
+                    }
+                });
+            }
+            
+            $('#countryFilter').on('change', function() {
+                table.ajax.reload();
+            });
 
             function logout() {
                 $.post('/api/logout', function () {

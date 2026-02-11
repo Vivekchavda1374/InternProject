@@ -63,8 +63,6 @@ public class UserFrontServiceImpl implements UserFrontService {
         address.setAddressType(request.getAddressType());
 
         UserFrontAddress savedAddress = addressRepository.save(address);
-
-        // Auto-create country if it doesn't exist
         if (request.getCountry() != null && !request.getCountry().trim().isEmpty()) {
             countryService.getOrCreateCountry(request.getCountry());
         }
@@ -182,7 +180,6 @@ public class UserFrontServiceImpl implements UserFrontService {
             address.setAddressType("Primary");
             addressRepository.save(address);
 
-            // Auto-create country if it doesn't exist
             if (request.getCountry() != null && !request.getCountry().trim().isEmpty()) {
                 countryService.getOrCreateCountry(request.getCountry());
             }

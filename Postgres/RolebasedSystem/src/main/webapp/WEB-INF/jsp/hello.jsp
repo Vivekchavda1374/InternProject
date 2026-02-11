@@ -63,7 +63,7 @@
                                         <th>State</th>
                                         <th>Country</th>
                                         <th>Product</th>
-                                        <th>Actions</th>
+<%--                                        <th>Actions</th>--%>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -271,7 +271,6 @@
             </div>
         </div>
 
-        <!-- Edit Company/Branch Modal -->
         <div class="modal fade" id="editUserFrontModal" tabindex="-1">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -543,92 +542,29 @@
             });
 
             function loadCountries() {
-                $.get('/api/countries', function (response) {
-                    if (response.success && response.data) {
-                        const select = $('#countryFilter');
-                        response.data.forEach(country => {
-                            select.append(new Option(country.name, country.name));
-                        });
-                    }
-                }).fail(function () {
-                    console.error('Failed to load countries');
-                });
-
-                $('#countryFilter').on('change', function () {
-                    const selectedCountry = $(this).val();
-                    if (selectedCountry) {
-                        filterByCountry(selectedCountry);
-                    } else {
-                        loadTable();
+                $('#countryFilter').off('change').on('change', function () {
+                    if (table) {
+                        table.ajax.reload();
                     }
                 });
             }
 
-            function filterByCountry(country) {
-                if (table) {
-                    table.destroy();
-                }
+            function refreshCountryFilterOptions(rows) {
+                const select = $('#countryFilter');
+                const currentValue = select.val();
+                const countries = [...new Set((rows || [])
+                    .map(r => (r.country || '').trim())
+                    .filter(Boolean))]
+                    .sort((a, b) => a.localeCompare(b));
 
-                table = $('#completeTable').DataTable({
-                    ajax: {
-                        url: '/api/user-front/search/country?country=' + encodeURIComponent(country),
-                        dataSrc: 'data',
-                        error: function (xhr, error, thrown) {
-                            console.error('Error loading filtered data:', error, thrown);
-                            alert('Error loading filtered data. Please check the console for details.');
-                        }
-                    },
-                    columns: [
-                        { data: 'userFrontId' },
-                        { data: null, defaultContent: '', render: (data) => data.parentCompanyId ? '' : data.name },
-                        { data: null, defaultContent: '', render: (data) => data.parentCompanyId ? data.name : '' },
-                        { data: 'gstNo', defaultContent: '' },
-                        { data: 'phoneNo', defaultContent: '' },
-                        {
-                            data: null,
-                            defaultContent: '',
-                            render: (data) => {
-                                if (data.addresses && data.addresses.length > 0) {
-                                    let addr = [];
-                                    const address = data.addresses[0];
-                                    if (address.addressLine1) addr.push(address.addressLine1);
-                                    if (address.addressLine2) addr.push(address.addressLine2);
-                                    return addr.join(', ');
-                                }
-                                return '';
-                            }
-                        },
-                        {
-                            data: null,
-                            defaultContent: '',
-                            render: (data) => data.addresses && data.addresses.length > 0 ? data.addresses[0].city || '' : ''
-                        },
-                        {
-                            data: null,
-                            defaultContent: '',
-                            render: (data) => data.addresses && data.addresses.length > 0 ? data.addresses[0].state || '' : ''
-                        },
-                        {
-                            data: null,
-                            defaultContent: '',
-                            render: (data) => data.addresses && data.addresses.length > 0 ? data.addresses[0].country || '' : ''
-                        },
-                        { data: null, defaultContent: '0' },
-                        {
-                            data: null,
-                            render: function (data, type, row) {
-                                let buttons = '';
-                                buttons += '<button class="btn btn-warning btn-sm me-1" onclick="openEditCompanyModal(' + row.userFrontId + ', \'' + (row.name || '').replace(/'/g, "\\'") + '\')" title="Edit"><i class="fas fa-edit"></i> Edit</button>';
-                                buttons += '<button class="btn btn-info btn-sm me-1" onclick="openCreateProductForEntity(' + row.userFrontId + ', \'' + row.name.replace(/'/g, "\\'") + '\')" title="Add Product"><i class="fas fa-plus"></i> Prod</button>';
-                                buttons += '<button class="btn btn-danger btn-sm" onclick="openDeleteModal(' + row.userFrontId + ', \'UserFront\')" title="Delete"><i class="fas fa-trash"></i></button>';
-                                return buttons;
-                            }
-                        }
-                    ],
-                    scrollX: true,
-                    pageLength: 25,
-                    order: [[0, 'asc']]
-                });
+                select.find('option:not(:first)').remove();
+                countries.forEach(country => select.append(new Option(country, country)));
+
+                if (currentValue && countries.includes(currentValue)) {
+                    select.val(currentValue);
+                } else {
+                    select.val('');
+                }
             }
 
             function loadTransactionData() {
@@ -722,11 +658,17 @@
                 table = $('#completeTable').DataTable({
                     ajax: {
                         url: '/api/complete',
+                        data: function(d) {
+                            d.country = $('#countryFilter').val();
+                        },
                         headers: {
                             'userId': currentUserId,
                             'isAdmin': currentUserIsAdmin
                         },
-                        dataSrc: '',
+                        dataSrc: function (json) {
+                            refreshCountryFilterOptions(json || []);
+                            return json || [];
+                        },
                         error: function () {
                             alert('Error loading data. Please check your permissions.');
                         }
@@ -750,27 +692,27 @@
                         { data: 'city', defaultContent: '' },
                         { data: 'state', defaultContent: '' },
                         { data: 'country', defaultContent: '' },
-                        { data: 'productCount', defaultContent: '0' },
-                        {
-                            data: null,
-                            render: function (data, type, row) {
-                                let buttons = '';
-                                if (row.type === 'Product') {
-                                    // Should not happen with new backend logic, but keeping for safety or if logic reverts
-                                    buttons += '<button class="btn btn-warning btn-sm me-1" onclick="openEditModal(this)" title="Edit Product"><i class="fas fa-edit"></i> Prod</button>';
-                                    buttons += '<button class="btn btn-info btn-sm me-1" onclick="openEditCompanyModal(' + row.userFrontId + ', \'' + (row.companyName || row.branchName || '').replace(/'/g, "\\'") + '\')" title="Edit Company/Branch"><i class="fas fa-building"></i> Co.</button>';
-                                } else {
-                                    buttons += '<button class="btn btn-warning btn-sm me-1" onclick="openEditModal(this)" title="Edit"><i class="fas fa-edit"></i> Edit</button>';
-                                    buttons += '<button class="btn btn-info btn-sm me-1" onclick="openCreateProductForEntity(' + row.id + ', \'' + (row.type === 'Company' ? row.companyName : row.branchName).replace(/'/g, "\\'") + '\')" title="Add Product"><i class="fas fa-plus"></i> Prod</button>';
-                                }
-                                buttons += '<button class="btn btn-danger btn-sm" onclick="openDeleteModal(' + row.id + ', \'' + row.type + '\')" title="Delete"><i class="fas fa-trash"></i></button>';
-                                return buttons;
-                            }
-                        }
+                        { data: 'productCount', defaultContent: '0' }
+                        // {
+                        //     data: null,
+                        //     render: function (data, type, row) {
+                        //         let buttons = '';
+                        //         if (row.type === 'Product') {
+                        //             buttons += '<button class="btn btn-warning btn-sm me-1" onclick="openEditModal(this)" title="Edit Product"><i class="fas fa-edit"></i> Prod</button>';
+                        //             buttons += '<button class="btn btn-info btn-sm me-1" onclick="openEditCompanyModal(' + row.userFrontId + ', \'' + (row.companyName || row.branchName || '').replace(/'/g, "\\'") + '\')" title="Edit Company/Branch"><i class="fas fa-building"></i> Co.</button>';
+                        //         } else {
+                        //             buttons += '<button class="btn btn-warning btn-sm me-1" onclick="openEditModal(this)" title="Edit"><i class="fas fa-edit"></i> Edit</button>';
+                        //             buttons += '<button class="btn btn-info btn-sm me-1" onclick="openCreateProductForEntity(' + row.id + ', \'' + (row.type === 'Company' ? row.companyName : row.branchName).replace(/'/g, "\\'") + '\')" title="Add Product"><i class="fas fa-plus"></i> Prod</button>';
+                        //         }
+                        //         buttons += '<button class="btn btn-danger btn-sm" onclick="openDeleteModal(' + row.id + ', \'' + row.type + '\')" title="Delete"><i class="fas fa-trash"></i></button>';
+                        //         return buttons;
+                        //     }
+                        // }
                     ],
                     scrollX: true,
                     pageLength: 25,
-                    order: [[0, 'asc']]
+                    order: [[0, 'asc']],
+                    searching: true,
                 });
             }
 

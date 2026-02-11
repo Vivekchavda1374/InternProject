@@ -11,10 +11,10 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -24,6 +24,21 @@ public class UserFrontRepositoryImpl implements UserFrontRepository {
 
     public UserFrontRepositoryImpl(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+    }
+
+    private Long extractGeneratedId(KeyHolder keyHolder, String keyName) {
+        Map<String, Object> keys = keyHolder.getKeys();
+        if (keys != null && !keys.isEmpty()) {
+            Object value = keys.get(keyName);
+            if (value == null) {
+                value = keys.values().iterator().next();
+            }
+            if (value instanceof Number n) {
+                return n.longValue();
+            }
+        }
+        Number singleKey = keyHolder.getKey();
+        return singleKey != null ? singleKey.longValue() : null;
     }
 
     private final RowMapper<UserFront> rowMapper = (rs, rowNum) -> {
@@ -83,7 +98,7 @@ public class UserFrontRepositoryImpl implements UserFrontRepository {
             String sql = "INSERT INTO user_front (name, password, parent_company_id, gst_no, phone_no) VALUES (?, ?, ?, ?, ?)";
             KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbcTemplate.update(connection -> {
-                PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                PreparedStatement ps = connection.prepareStatement(sql, new String[] { "user_front_id" });
                 ps.setString(1, userFront.getName());
                 ps.setString(2, userFront.getPassword());
                 ps.setObject(3,
@@ -92,9 +107,9 @@ public class UserFrontRepositoryImpl implements UserFrontRepository {
                 ps.setString(5, userFront.getPhoneNo());
                 return ps;
             }, keyHolder);
-            Number key = keyHolder.getKey();
+            Long key = extractGeneratedId(keyHolder, "user_front_id");
             if (key != null) {
-                userFront.setUserFrontId(key.longValue());
+                userFront.setUserFrontId(key);
             }
         } else {
             String sql = "UPDATE user_front SET name = ?, password = ?, parent_company_id = ?, gst_no = ?, phone_no = ? WHERE user_front_id = ?";

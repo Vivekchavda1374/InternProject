@@ -4,10 +4,7 @@ import com.vasyerp.rolebasedsystem.dto.CompleteDataDTO;
 import com.vasyerp.rolebasedsystem.service.CompleteDataService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
@@ -20,10 +17,21 @@ public class CompleteDataController {
     @GetMapping
     public ResponseEntity<List<CompleteDataDTO>> getAllData(
             @RequestHeader(value = "userId", required = false) Long userId,
-            @RequestHeader(value = "isAdmin", required = false, defaultValue = "false") boolean isAdmin) {
+            @RequestHeader(value = "isAdmin", required = false, defaultValue = "false") boolean isAdmin,
+            @RequestParam(value = "country", required = false) String country) {
+        List<CompleteDataDTO> data;
         if (userId == null) {
-            return ResponseEntity.ok(service.getAllData());
+            data = service.getAllData();
+        } else {
+            data = service.getDataByUser(userId, isAdmin);
         }
-        return ResponseEntity.ok(service.getDataByUser(userId, isAdmin));
+        
+        if (country != null && !country.trim().isEmpty()) {
+            data = data.stream()
+                    .filter(dto -> country.equalsIgnoreCase(dto.getCountry()))
+                    .collect(java.util.stream.Collectors.toList());
+        }
+        
+        return ResponseEntity.ok(data);
     }
 }

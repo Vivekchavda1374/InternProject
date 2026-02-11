@@ -10,8 +10,8 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -21,6 +21,21 @@ public class UserFrontAddressRepositoryImpl implements UserFrontAddressRepositor
 
     public UserFrontAddressRepositoryImpl(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+    }
+
+    private Long extractGeneratedId(KeyHolder keyHolder, String keyName) {
+        Map<String, Object> keys = keyHolder.getKeys();
+        if (keys != null && !keys.isEmpty()) {
+            Object value = keys.get(keyName);
+            if (value == null) {
+                value = keys.values().iterator().next();
+            }
+            if (value instanceof Number n) {
+                return n.longValue();
+            }
+        }
+        Number singleKey = keyHolder.getKey();
+        return singleKey != null ? singleKey.longValue() : null;
     }
 
     private final RowMapper<UserFrontAddress> rowMapper = (rs, rowNum) -> {
@@ -50,7 +65,7 @@ public class UserFrontAddressRepositoryImpl implements UserFrontAddressRepositor
             String sql = "INSERT INTO user_front_address (user_front_id, address_type, name, address_line_1, address_line_2, city, state, country) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbcTemplate.update(connection -> {
-                PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                PreparedStatement ps = connection.prepareStatement(sql, new String[] { "user_front_address_id" });
                 ps.setLong(1, address.getUserFront().getUserFrontId());
                 ps.setString(2, address.getAddressType());
                 ps.setString(3, address.getName());
@@ -61,9 +76,9 @@ public class UserFrontAddressRepositoryImpl implements UserFrontAddressRepositor
                 ps.setString(8, address.getCountry());
                 return ps;
             }, keyHolder);
-            Number key = keyHolder.getKey();
+            Long key = extractGeneratedId(keyHolder, "user_front_address_id");
             if (key != null) {
-                address.setUserFrontAddressId(key.longValue());
+                address.setUserFrontAddressId(key);
             }
         } else {
             String sql = "UPDATE user_front_address SET user_front_id = ?, address_type = ?, name = ?, address_line_1 = ?, address_line_2 = ?, city = ?, state = ?, country = ? WHERE user_front_address_id = ?";

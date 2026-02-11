@@ -9,8 +9,8 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -20,6 +20,21 @@ public class UserRoleNewRepositoryImpl implements UserRoleNewRepository {
 
     public UserRoleNewRepositoryImpl(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+    }
+
+    private Long extractGeneratedId(KeyHolder keyHolder, String keyName) {
+        Map<String, Object> keys = keyHolder.getKeys();
+        if (keys != null && !keys.isEmpty()) {
+            Object value = keys.get(keyName);
+            if (value == null) {
+                value = keys.values().iterator().next();
+            }
+            if (value instanceof Number n) {
+                return n.longValue();
+            }
+        }
+        Number singleKey = keyHolder.getKey();
+        return singleKey != null ? singleKey.longValue() : null;
     }
 
     private final RowMapper<UserRoleNew> rowMapper = (rs, rowNum) -> {
@@ -36,14 +51,14 @@ public class UserRoleNewRepositoryImpl implements UserRoleNewRepository {
             String sql = "INSERT INTO user_role_new (role_id, user_front_id) VALUES (?, ?)";
             KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbcTemplate.update(connection -> {
-                PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                PreparedStatement ps = connection.prepareStatement(sql, new String[] { "user_role_new_id" });
                 ps.setLong(1, userRoleNew.getRoleId());
                 ps.setLong(2, userRoleNew.getUserFrontId());
                 return ps;
             }, keyHolder);
-            Number key = keyHolder.getKey();
+            Long key = extractGeneratedId(keyHolder, "user_role_new_id");
             if (key != null) {
-                userRoleNew.setUserRoleNewId(key.longValue());
+                userRoleNew.setUserRoleNewId(key);
             }
         } else {
             String sql = "UPDATE user_role_new SET role_id = ?, user_front_id = ? WHERE user_role_new_id = ?";
