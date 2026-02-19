@@ -17,8 +17,16 @@ DROP TABLE IF EXISTS user_role;
 DROP TABLE IF EXISTS contact_address;
 DROP TABLE IF EXISTS contact;
 
+-- Country master
+DROP TABLE IF EXISTS country;
+
 -- Company / Branch (self-referencing table)
 DROP TABLE IF EXISTS user_front;
+
+CREATE TABLE country (
+                         country_id BIGSERIAL PRIMARY KEY,
+                         name VARCHAR(100) UNIQUE NOT NULL
+);
 
 CREATE TABLE user_front (
                             user_front_id BIGSERIAL PRIMARY KEY,
@@ -165,6 +173,15 @@ INSERT INTO user_role (role_name) VALUES
 ('BRANCH')
 ON CONFLICT (role_name) DO NOTHING;
 
+INSERT INTO country (name) VALUES
+('India'),
+('USA'),
+('UK'),
+('Canada'),
+('Australia'),
+('AdminCountry')
+ON CONFLICT (name) DO NOTHING;
+
 -- 2. Insert Users (Companies and Branches)
 -- Password is 'password' (BCrypt hash: $2a$10$slYQmyNdGzTn7ZLBXBChFOC9f6kFjAqPhccnP6DxlNBxbetINUjP)
 
@@ -242,12 +259,20 @@ DROP TABLE IF EXISTS user_role CASCADE;
 DROP TABLE IF EXISTS contact_address CASCADE;
 DROP TABLE IF EXISTS contact CASCADE;
 
+-- Drop country master
+DROP TABLE IF EXISTS country CASCADE;
+
 -- Drop user front address
 DROP TABLE IF EXISTS user_front_address CASCADE;
 
 -- Drop main user/company table (self-referencing)
 DROP TABLE IF EXISTS user_front CASCADE;
 
+
+CREATE TABLE country (
+                         country_id BIGSERIAL PRIMARY KEY,
+                         name VARCHAR(100) UNIQUE NOT NULL
+);
 
 CREATE TABLE user_front (
                             user_front_id BIGSERIAL PRIMARY KEY,
@@ -416,6 +441,15 @@ INSERT INTO user_role (role_name) VALUES
 ('BRANCH')
 ON CONFLICT (role_name) DO NOTHING;
 
+INSERT INTO country (name) VALUES
+('India'),
+('USA'),
+('UK'),
+('Canada'),
+('Australia'),
+('AdminCountry')
+ON CONFLICT (name) DO NOTHING;
+
 -- 2. Insert Users (Companies and Branches)
 -- Password is 'password' (BCrypt hash: $2a$10$slYQmyNdGzTn7ZLBXBChFOC9f6kFjAqPhccnP6DxlNBxbetINUjP)
 
@@ -561,3 +595,39 @@ select * from user_front
 
 ALTER TABLE sales ALTER COLUMN contact_id DROP NOT NULL;
 ALTER TABLE purchase ALTER COLUMN contact_id DROP NOT NULL;
+
+BEGIN;
+
+-- 1) Add new FK column
+ALTER TABLE user_front_address
+ADD COLUMN country_id BIGINT;
+
+-- 2) Ensure all existing country names exist in master table
+INSERT INTO country (name)
+SELECT DISTINCT TRIM(country)
+FROM user_front_address
+WHERE country IS NOT NULL
+  AND TRIM(country) <> ''
+ON CONFLICT (name) DO NOTHING;
+
+-- 3) Map existing text country -> country_id
+UPDATE user_front_address ufa
+SET country_id = c.country_id
+FROM country c
+WHERE TRIM(ufa.country) = c.name;
+
+-- 4) Make FK required (optional: only if every row has a country)
+ALTER TABLE user_front_address
+ALTER COLUMN country_id SET NOT NULL;
+
+-- 5) Add foreign key
+ALTER TABLE user_front_address
+ADD CONSTRAINT fk_user_front_address_country
+FOREIGN KEY (country_id)
+REFERENCES country(country_id);
+
+-- 6) Remove old text column
+ALTER TABLE user_front_address
+DROP COLUMN country;
+
+COMMIT;

@@ -75,7 +75,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">Password</label>
-                        <input type="password" class="form-control" name="password" required>
+                        <input type="password" class="form-control" name="password" autocomplete="new-password" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">GST Number</label>
@@ -138,7 +138,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">Password</label>
-                        <input type="password" class="form-control" name="password" required>
+                        <input type="password" class="form-control" name="password" autocomplete="new-password" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">GST Number</label>

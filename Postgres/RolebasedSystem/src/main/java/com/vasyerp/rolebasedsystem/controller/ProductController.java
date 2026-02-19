@@ -36,6 +36,18 @@ public class ProductController {
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
     }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<ProductDTO>>> getAllProducts() {
+        try {
+            List<ProductDTO> products = productService.getAllProducts();
+            return ResponseEntity.ok(new ApiResponse<>(true, "Products retrieved successfully", products));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
     @GetMapping("/company/{companyId}")
     public ResponseEntity<ApiResponse<List<ProductDTO>>> getProductsByCompany(
             @RequestHeader("userId") Long userId,

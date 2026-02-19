@@ -17,8 +17,16 @@ DROP TABLE IF EXISTS user_role;
 DROP TABLE IF EXISTS contact_address;
 DROP TABLE IF EXISTS contact;
 
+-- Country master
+DROP TABLE IF EXISTS country;
+
 -- Company / Branch (self-referencing table)
 DROP TABLE IF EXISTS user_front;
+
+CREATE TABLE country (
+                         country_id BIGSERIAL PRIMARY KEY,
+                         name VARCHAR(100) UNIQUE NOT NULL
+);
 
 CREATE TABLE user_front (
                             user_front_id BIGSERIAL PRIMARY KEY,
@@ -165,6 +173,15 @@ INSERT INTO user_role (role_name) VALUES
 ('BRANCH')
 ON CONFLICT (role_name) DO NOTHING;
 
+INSERT INTO country (name) VALUES
+('India'),
+('USA'),
+('UK'),
+('Canada'),
+('Australia'),
+('AdminCountry')
+ON CONFLICT (name) DO NOTHING;
+
 -- 2. Insert Users (Companies and Branches)
 -- Password is 'password' (BCrypt hash: $2a$10$slYQmyNdGzTn7ZLBXBChFOC9f6kFjAqPhccnP6DxlNBxbetINUjP)
 
@@ -242,12 +259,20 @@ DROP TABLE IF EXISTS user_role CASCADE;
 DROP TABLE IF EXISTS contact_address CASCADE;
 DROP TABLE IF EXISTS contact CASCADE;
 
+-- Drop country master
+DROP TABLE IF EXISTS country CASCADE;
+
 -- Drop user front address
 DROP TABLE IF EXISTS user_front_address CASCADE;
 
 -- Drop main user/company table (self-referencing)
 DROP TABLE IF EXISTS user_front CASCADE;
 
+
+CREATE TABLE country (
+                         country_id BIGSERIAL PRIMARY KEY,
+                         name VARCHAR(100) UNIQUE NOT NULL
+);
 
 CREATE TABLE user_front (
                             user_front_id BIGSERIAL PRIMARY KEY,
@@ -415,6 +440,15 @@ INSERT INTO user_role (role_name) VALUES
 ('COMPANY'),
 ('BRANCH')
 ON CONFLICT (role_name) DO NOTHING;
+
+INSERT INTO country (name) VALUES
+('India'),
+('USA'),
+('UK'),
+('Canada'),
+('Australia'),
+('AdminCountry')
+ON CONFLICT (name) DO NOTHING;
 
 -- 2. Insert Users (Companies and Branches)
 -- Password is 'password' (BCrypt hash: $2a$10$slYQmyNdGzTn7ZLBXBChFOC9f6kFjAqPhccnP6DxlNBxbetINUjP)

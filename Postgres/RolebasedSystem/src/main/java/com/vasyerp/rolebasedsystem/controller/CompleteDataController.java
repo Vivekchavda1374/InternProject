@@ -20,18 +20,13 @@ public class CompleteDataController {
             @RequestHeader(value = "isAdmin", required = false, defaultValue = "false") boolean isAdmin,
             @RequestParam(value = "country", required = false) String country) {
         List<CompleteDataDTO> data;
+        String countryFilter = (country == null || country.trim().isEmpty()) ? null : country.trim();
         if (userId == null) {
-            data = service.getAllData();
+            data = service.getAllData(countryFilter);
         } else {
-            data = service.getDataByUser(userId, isAdmin);
+            data = service.getDataByUser(userId, isAdmin, countryFilter);
         }
-        
-        if (country != null && !country.trim().isEmpty()) {
-            data = data.stream()
-                    .filter(dto -> country.equalsIgnoreCase(dto.getCountry()))
-                    .collect(java.util.stream.Collectors.toList());
-        }
-        
+
         return ResponseEntity.ok(data);
     }
 }

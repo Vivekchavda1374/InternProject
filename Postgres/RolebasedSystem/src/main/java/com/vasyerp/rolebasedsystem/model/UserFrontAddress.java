@@ -41,6 +41,24 @@ public class UserFrontAddress {
     @Column(name = "state", length = 100)
     private String state;
 
-    @Column(name = "country", length = 100)
-    private String country;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "country_id")
+    @JsonIgnore
+    private Country countryRef;
+
+    @Transient
+    public String getCountry() {
+        return countryRef != null ? countryRef.getName() : null;
+    }
+
+    public void setCountry(String countryName) {
+        if (countryName == null || countryName.trim().isEmpty()) {
+            this.countryRef = null;
+            return;
+        }
+        if (this.countryRef == null) {
+            this.countryRef = new Country();
+        }
+        this.countryRef.setName(countryName.trim());
+    }
 }

@@ -1,163 +1,192 @@
 package com.vasyerp.rolebasedsystem.service;
 
 import com.vasyerp.rolebasedsystem.dto.CompleteDataDTO;
-import com.vasyerp.rolebasedsystem.model.Product;
-import com.vasyerp.rolebasedsystem.model.UserFront;
-import com.vasyerp.rolebasedsystem.repository.ProductRepository;
-import com.vasyerp.rolebasedsystem.repository.UserFrontRepository;
+import com.vasyerp.rolebasedsystem.repository.CompleteDataRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
 @Service
+@Transactional(readOnly = true)
 public class CompleteDataServiceImpl implements CompleteDataService {
 
-    private final UserFrontRepository userFrontRepository;
-    private final ProductRepository productRepository;
+    private final CompleteDataRepository completeDataRepository;
 
-    public CompleteDataServiceImpl(UserFrontRepository userFrontRepository,
-                                   ProductRepository productRepository) {
-        this.userFrontRepository = userFrontRepository;
-        this.productRepository = productRepository;
+    public CompleteDataServiceImpl(CompleteDataRepository completeDataRepository) {
+        this.completeDataRepository = completeDataRepository;
     }
 
     @Override
-    public List<CompleteDataDTO> getAllData() {
-
-        List<CompleteDataDTO> result = new ArrayList<>();
-        long hierarchyOrder = 1;
-
-        var users = userFrontRepository.findAll();
-        var products = productRepository.findAll();
-
-        var productsByCompany = products.stream()
-                .collect(Collectors.groupingBy(Product::getCompanyId, Collectors.counting()));
-
-        List<UserFront> companies = users.stream()
-                .filter(u -> u.getParentCompany() == null)
-                .sorted((c1, c2) -> c1.getUserFrontId().compareTo(c2.getUserFrontId()))
-                .toList();
-
-        var branchesByCompany = users.stream()
-                .filter(u -> u.getParentCompany() != null)
-                .collect(Collectors.groupingBy(
-                        u -> u.getParentCompany().getUserFrontId()));
-
-        for (UserFront company : companies) {
-
-            Long companyProductCount =
-                    productsByCompany.getOrDefault(company.getUserFrontId(), 0L);
-
-            result.add(createDTO(company, companyProductCount, hierarchyOrder++));
-
-            List<UserFront> companyBranches =
-                    branchesByCompany.getOrDefault(company.getUserFrontId(),
-                            new ArrayList<>());
-
-            companyBranches.sort((b1, b2) ->
-                    b1.getUserFrontId().compareTo(b2.getUserFrontId()));
-
-            for (UserFront branch : companyBranches) {
-
-                Long branchProductCount =
-                        productsByCompany.getOrDefault(branch.getUserFrontId(), 0L);
-
-                result.add(createDTO(branch, branchProductCount, hierarchyOrder++));
-            }
-        }
-
-        return result;
+    @Cacheable(value = "completeDataAll", key = "#country == null ? 'ALL' : #country")
+    public List<CompleteDataDTO> getAllData(String country) {
+        return runCompleteDataQuery(null, null, country);
     }
 
     @Override
-    public List<CompleteDataDTO> getDataByUser(Long userId, boolean isAdmin) {
-
+    @Cacheable(
+        value = "completeDataByUser",
+        key = "#userId + ':' + #isAdmin + ':' + (#country == null ? 'ALL' : #country)"
+    )
+    public List<CompleteDataDTO> getDataByUser(Long userId, boolean isAdmin, String country) {
         if (isAdmin) {
-            return getAllData();
+            return getAllData(country);
         }
 
-        List<CompleteDataDTO> result = new ArrayList<>();
-        long hierarchyOrder = 1;
+        List<Object[]> scopeRows = completeDataRepository.findUserScope(userId);
+        if (CollectionUtils.isEmpty(scopeRows)) {
+            return Collections.emptyList();
+        }
+        Object[] scope = scopeRows.get(0);
 
-        var userOpt = userFrontRepository.findById(userId);
-        if (userOpt.isEmpty()) return result;
+        Long resolvedUserId = toLong(scope[0]);
+        Long parentCompanyId = toLong(scope[1]);
 
-        var currentUser = userOpt.get();
-        List<UserFront> relevantUsers = new ArrayList<>();
-
-        if (currentUser.getParentCompany() == null) {
-
-            relevantUsers = userFrontRepository.findAll().stream()
-                    .filter(u ->
-                            u.getUserFrontId().equals(userId) ||
-                                    (u.getParentCompany() != null &&
-                                            u.getParentCompany().getUserFrontId().equals(userId)))
-                    .toList();
-        } else {
-            relevantUsers.add(currentUser);
+        if (resolvedUserId == null) {
+            return Collections.emptyList();
+        }
+        if (parentCompanyId != null) {
+            return runCompleteDataQuery(parentCompanyId, resolvedUserId, country);
         }
 
-        List<Long> relevantUserIds =
-                relevantUsers.stream()
-                        .map(UserFront::getUserFrontId)
-                        .toList();
+        return runCompleteDataQuery(resolvedUserId, null, country);
+    }
 
-        var products = productRepository.findAll().stream()
-                .filter(p -> relevantUserIds.contains(p.getCompanyId()))
+    private List<CompleteDataDTO> runCompleteDataQuery(
+            Long companyIdFilter,
+            Long branchIdFilter,
+            String countryFilter
+    ) {
+        String normalizedCountry = (countryFilter == null || countryFilter.isBlank())
+                ? null
+                : countryFilter.toLowerCase();
+
+        List<Object[]> rows = completeDataRepository.findCompleteBranchRows(
+                companyIdFilter,
+                branchIdFilter,
+                normalizedCountry
+        );
+
+        List<CompleteDataDTO> companyRows = branchIdFilter == null
+                ? fetchCompanyRows(companyIdFilter, normalizedCountry)
+                : Collections.emptyList();
+
+        List<CompleteDataDTO> branchRows = rows.stream()
+                .map(this::mapBranchRow)
                 .toList();
 
-        var productsByCompany = products.stream()
-                .collect(Collectors.groupingBy(
-                        Product::getCompanyId,
-                        Collectors.counting()));
+        List<CompleteDataDTO> result = Stream.concat(companyRows.stream(), branchRows.stream())
+                .collect(Collectors.toCollection(ArrayList::new));
 
-        for (UserFront user : relevantUsers) {
-
-            Long count =
-                    productsByCompany.getOrDefault(user.getUserFrontId(), 0L);
-
-            result.add(createDTO(user, count, hierarchyOrder++));
-        }
-
+        IntStream.range(0, result.size())
+                .forEach(i -> result.get(i).setHierarchyOrder((long) i + 1));
         return result;
     }
 
+    private List<CompleteDataDTO> fetchCompanyRows(Long companyIdFilter, String normalizedCountry) {
+        List<Object[]> rows = completeDataRepository.findCompleteCompanyRows(companyIdFilter, normalizedCountry);
 
-    private CompleteDataDTO createDTO(UserFront user,
-                                      Long productCount,
-                                      Long hierarchyOrder) {
+        return rows.stream()
+                .map(this::mapCompanyRow)
+                .toList();
+    }
+
+    private CompleteDataDTO mapBranchRow(Object[] row) {
+        Long companyId = toLong(row[0]);
+        String companyName = toString(row[1]);
+        String gstNo = toString(row[2]);
+        String phoneNo = toString(row[3]);
+        String addressType = toString(row[4]);
+        String addressLine1 = toString(row[5]);
+        String addressLine2 = toString(row[6]);
+        String city = toString(row[7]);
+        String state = toString(row[8]);
+        String country = toString(row[9]);
+        Long branchId = toLong(row[10]);
+        String branchName = toString(row[11]);
+        Double totalPurchaseAmount = toDouble(row[12]);
+        Double totalSalesAmount = toDouble(row[13]);
+        Long totalProducts = toLong(row[14]);
 
         CompleteDataDTO dto = new CompleteDataDTO();
-
-        dto.setCompanyName(user.getParentCompany() == null ? user.getName() : null);
-        dto.setBranchName(user.getParentCompany() != null ? user.getName() : null);
-        dto.setParentCompany(user.getParentCompany() != null ?
-                user.getParentCompany().getName() : null);
-
-        dto.setGstNo(user.getGstNo());
-        dto.setPhoneNo(user.getPhoneNo());
-
-        if (user.getAddresses() != null && !user.getAddresses().isEmpty()) {
-            var addr = user.getAddresses().get(0);
-            dto.setAddressType(addr.getAddressType());
-            dto.setAddressLine1(addr.getAddressLine1());
-            dto.setAddressLine2(addr.getAddressLine2());
-            dto.setCity(addr.getCity());
-            dto.setState(addr.getState());
-            dto.setCountry(addr.getCountry());
-        }
-
-        if (user.getRoles() != null && !user.getRoles().isEmpty()) {
-            dto.setRoleName(user.getRoles().getClass().getTypeName());
-        }
-
-        dto.setUserFrontId(user.getUserFrontId());
-        dto.setProductCount(productCount != null ? productCount : 0L);
-        dto.setHierarchyOrder(hierarchyOrder);
-        dto.setId(user.getUserFrontId());
-        dto.setType(user.getParentCompany() == null ? "Company" : "Branch");
-
+        dto.setId(branchId != null ? branchId : companyId);
+        dto.setType(branchId != null ? "Branch" : "Company");
+        dto.setCompanyName(companyName);
+        dto.setBranchName(branchName);
+        dto.setParentCompany(branchId != null ? companyName : null);
+        dto.setGstNo(gstNo);
+        dto.setPhoneNo(phoneNo);
+        dto.setAddressType(addressType);
+        dto.setAddressLine1(addressLine1);
+        dto.setAddressLine2(addressLine2);
+        dto.setCity(city);
+        dto.setState(state);
+        dto.setCountry(country);
+        dto.setUserFrontId(branchId != null ? branchId : companyId);
+        dto.setProductCount(totalProducts == null ? 0L : totalProducts);
+        dto.setTotalPurchaseAmount(zeroIfNull(totalPurchaseAmount));
+        dto.setTotalSalesAmount(zeroIfNull(totalSalesAmount));
+        dto.setTotalProducts(totalProducts == null ? 0L : totalProducts);
         return dto;
+    }
+
+    private CompleteDataDTO mapCompanyRow(Object[] row) {
+        Long companyId = toLong(row[0]);
+        String companyName = toString(row[1]);
+        String gstNo = toString(row[2]);
+        String phoneNo = toString(row[3]);
+        String addressType = toString(row[4]);
+        String addressLine1 = toString(row[5]);
+        String addressLine2 = toString(row[6]);
+        String city = toString(row[7]);
+        String state = toString(row[8]);
+        String country = toString(row[9]);
+        Double totalPurchaseAmount = toDouble(row[10]);
+        Double totalSalesAmount = toDouble(row[11]);
+        Long totalProducts = toLong(row[12]);
+
+        CompleteDataDTO dto = new CompleteDataDTO();
+        dto.setId(companyId);
+        dto.setType("Company");
+        dto.setCompanyName(companyName);
+        dto.setBranchName(null);
+        dto.setParentCompany(null);
+        dto.setGstNo(gstNo);
+        dto.setPhoneNo(phoneNo);
+        dto.setAddressType(addressType);
+        dto.setAddressLine1(addressLine1);
+        dto.setAddressLine2(addressLine2);
+        dto.setCity(city);
+        dto.setState(state);
+        dto.setCountry(country);
+        dto.setUserFrontId(companyId);
+        dto.setProductCount(totalProducts == null ? 0L : totalProducts);
+        dto.setTotalPurchaseAmount(zeroIfNull(totalPurchaseAmount));
+        dto.setTotalSalesAmount(zeroIfNull(totalSalesAmount));
+        dto.setTotalProducts(totalProducts == null ? 0L : totalProducts);
+        return dto;
+    }
+
+    private Long toLong(Object value) {
+        return value == null ? null : ((Number) value).longValue();
+    }
+
+    private Double toDouble(Object value) {
+        return value == null ? null : ((Number) value).doubleValue();
+    }
+
+    private String toString(Object value) {
+        return value == null ? null : value.toString();
+    }
+
+    private Double zeroIfNull(Double value) {
+        return value == null ? 0.0 : value;
     }
 }

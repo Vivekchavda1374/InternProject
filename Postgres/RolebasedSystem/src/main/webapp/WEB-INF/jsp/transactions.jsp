@@ -191,7 +191,7 @@
 
     <script>
         let salesTable, purchaseTable;
-        let companies = [], products = [];
+        let companies = [], branches = [], products = [];
 
         $(document).ready(function() {
             loadData();
@@ -224,11 +224,17 @@
         });
 
         function loadData() {
-            $.get('/api/user-front', function(r) {
-                companies = r.data || [];
+            $.get('/api/user-front/companies', function(r) {
+                const allEntities = r.data || [];
+                companies = allEntities.filter(e => !e.parentCompanyId);
+                branches = allEntities.filter(e => e.parentCompanyId);
             });
             $.get('/api/products', function(r) {
-                products = r.data || [];
+                products = (r.data || []).map(p => ({
+                    productId: p.productId ?? p.id,
+                    productName: p.productName,
+                    companyId: p.companyId
+                }));
             });
         }
 
@@ -236,6 +242,7 @@
             $('#salesForm')[0].reset();
             $('#salesItems').html('<div class="row mb-2 sales-item"><div class="col-md-5"><select class="form-select product-select" required></select></div><div class="col-md-3"><input type="number" class="form-control quantity" placeholder="Quantity" step="0.01" required></div><div class="col-md-3"><input type="number" class="form-control price" placeholder="Price" step="0.01" required></div><div class="col-md-1"><button type="button" class="btn btn-danger btn-sm" onclick="$(this).closest(\'.sales-item\').remove(); calcTotal()"><i class="fas fa-trash"></i></button></div></div>');
             populateSelects('#salesForm');
+            bindCompanyChange('#salesForm');
             $('#salesModal').modal('show');
         }
 
@@ -243,40 +250,72 @@
             $('#purchaseForm')[0].reset();
             $('#purchaseItems').html('<div class="row mb-2 purchase-item"><div class="col-md-5"><select class="form-select product-select" required></select></div><div class="col-md-3"><input type="number" class="form-control quantity" placeholder="Quantity" step="0.01" required></div><div class="col-md-3"><input type="number" class="form-control price" placeholder="Price" step="0.01" required></div><div class="col-md-1"><button type="button" class="btn btn-danger btn-sm" onclick="$(this).closest(\'.purchase-item\').remove(); calcTotal()"><i class="fas fa-trash"></i></button></div></div>');
             populateSelects('#purchaseForm');
+            bindCompanyChange('#purchaseForm');
             $('#purchaseModal').modal('show');
         }
 
         function populateSelects(formSelector) {
-            $(formSelector + ' [name="companyId"], ' + formSelector + ' [name="branchId"]').each(function() {
-                const sel = $(this);
-                sel.empty().append('<option value="">Select...</option>');
-                companies.forEach(c => sel.append(new Option(c.name, c.userFrontId)));
+            const companySel = $(formSelector + ' [name="companyId"]');
+            const branchSel = $(formSelector + ' [name="branchId"]');
+
+            companySel.empty().append('<option value="">Select Company...</option>');
+            companies.forEach(c => companySel.append(new Option(c.name, c.userFrontId)));
+
+            branchSel.empty().append('<option value="">Select Branch...</option>');
+            populateProductOptions(formSelector);
+        }
+
+        function bindCompanyChange(formSelector) {
+            const companySel = $(formSelector + ' [name="companyId"]');
+            companySel.off('change').on('change', function() {
+                const companyId = parseInt($(this).val());
+                const branchSel = $(formSelector + ' [name="branchId"]');
+                branchSel.empty().append('<option value="">Select Branch...</option>');
+
+                if (!isNaN(companyId)) {
+                    branchSel.append(new Option(companies.find(c => c.userFrontId == companyId)?.name || 'Self', companyId));
+                    branches
+                        .filter(b => b.parentCompanyId == companyId)
+                        .forEach(b => branchSel.append(new Option(b.name, b.userFrontId)));
+                }
+
+                populateProductOptions(formSelector);
             });
+
+            $(formSelector + ' [name="branchId"]').off('change').on('change', function() {
+                populateProductOptions(formSelector);
+            });
+        }
+
+        function getAllowedProducts(companyId, branchId) {
+            if (isNaN(companyId) && isNaN(branchId)) {
+                return [];
+            }
+            return products.filter(p => p.companyId == companyId || p.companyId == branchId);
+        }
+
+        function populateProductOptions(formSelector) {
+            const companyId = parseInt($(formSelector + ' [name="companyId"]').val());
+            const branchId = parseInt($(formSelector + ' [name="branchId"]').val());
+            const allowedProducts = getAllowedProducts(companyId, branchId);
+
             $(formSelector + ' .product-select').each(function() {
                 const sel = $(this);
                 sel.empty().append('<option value="">Select Product...</option>');
-                products.forEach(p => sel.append(new Option(p.productName, p.productId)));
+                allowedProducts.forEach(p => sel.append(new Option(p.productName, p.productId)));
             });
         }
 
         function addSalesItem() {
             const html = '<div class="row mb-2 sales-item"><div class="col-md-5"><select class="form-select product-select" required></select></div><div class="col-md-3"><input type="number" class="form-control quantity" placeholder="Quantity" step="0.01" required></div><div class="col-md-3"><input type="number" class="form-control price" placeholder="Price" step="0.01" required></div><div class="col-md-1"><button type="button" class="btn btn-danger btn-sm" onclick="$(this).closest(\'.sales-item\').remove(); calcTotal()"><i class="fas fa-trash"></i></button></div></div>';
             $('#salesItems').append(html);
-            $('#salesItems .product-select:last').each(function() {
-                const sel = $(this);
-                sel.empty().append('<option value="">Select Product...</option>');
-                products.forEach(p => sel.append(new Option(p.productName, p.productId)));
-            });
+            populateProductOptions('#salesForm');
         }
 
         function addPurchaseItem() {
             const html = '<div class="row mb-2 purchase-item"><div class="col-md-5"><select class="form-select product-select" required></select></div><div class="col-md-3"><input type="number" class="form-control quantity" placeholder="Quantity" step="0.01" required></div><div class="col-md-3"><input type="number" class="form-control price" placeholder="Price" step="0.01" required></div><div class="col-md-1"><button type="button" class="btn btn-danger btn-sm" onclick="$(this).closest(\'.purchase-item\').remove(); calcTotal()"><i class="fas fa-trash"></i></button></div></div>';
             $('#purchaseItems').append(html);
-            $('#purchaseItems .product-select:last').each(function() {
-                const sel = $(this);
-                sel.empty().append('<option value="">Select Product...</option>');
-                products.forEach(p => sel.append(new Option(p.productName, p.productId)));
-            });
+            populateProductOptions('#purchaseForm');
         }
 
         function calcTotal() {

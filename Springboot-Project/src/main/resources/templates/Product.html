@@ -1,0 +1,98 @@
+<!DOCTYPE HTML>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<!DOCTYPE HTML>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Form - Product Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">Product Management System</span>
+            <a href="/products" class="btn btn-outline-light">← Back to Products</a>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h1 class="card-title text-center mb-2" th:if="${product.productId == null || product.productId == 0}">Add New Product</h1>
+                        <h1 class="card-title text-center mb-2" th:unless="${product.productId == null || product.productId == 0}">Edit Product</h1>
+                        
+                        <p class="text-center text-muted mb-4" th:if="${product.productId == null || product.productId == 0}">Fill in the details below to add a new product</p>
+                        <p class="text-center text-muted mb-4" th:unless="${product.productId == null || product.productId == 0}">Update the product information below</p>
+
+                        <form th:action="@{/products/save}" th:object="${product}" method="POST">
+
+                            <input type="hidden" th:field="*{productId}" />
+
+                            <div class="mb-3">
+                                <label for="productName" class="form-label">Product Name <span class="text-danger">*</span></label>
+                                <input type="text"
+                                       id="productName"
+                                       th:field="*{productName}"
+                                       class="form-control"
+                                       placeholder="Enter product name (e.g., Laptop, Mouse, Keyboard)"
+                                       required
+                                       autofocus>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="price" class="form-label">Price ($) <span class="text-danger">*</span></label>
+                                <input type="number"
+                                       id="price"
+                                       step="0.01"
+                                       min="0"
+                                       th:field="*{price}"
+                                       class="form-control"
+                                       placeholder="Enter price (e.g., 99.99)"
+                                       required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="quantity" class="form-label">Quantity <span class="text-danger">*</span></label>
+                                <input type="number"
+                                       id="quantity"
+                                       step="0.01"
+                                       min="0"
+                                       th:field="*{quantity}"
+                                       class="form-control"
+                                       placeholder="Enter quantity available"
+                                       required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
+                                <input type="text"
+                                       id="category"
+                                       th:field="*{category}"
+                                       class="form-control"
+                                       placeholder="Enter category (e.g., Electronics, Accessories)"
+                                       required>
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="submit" class="btn btn-primary">
+                                    <span th:if="${product.productId == null || product.productId == 0}">Add Product</span>
+                                    <span th:unless="${product.productId == null || product.productId == 0}">Update Product</span>
+                                </button>
+                                <a href="/products" class="btn btn-secondary">Cancel</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

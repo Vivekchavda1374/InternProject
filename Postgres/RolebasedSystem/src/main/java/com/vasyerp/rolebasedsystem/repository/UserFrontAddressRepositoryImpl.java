@@ -2,6 +2,7 @@ package com.vasyerp.rolebasedsystem.repository;
 
 import com.vasyerp.rolebasedsystem.model.UserFront;
 import com.vasyerp.rolebasedsystem.model.UserFrontAddress;
+import com.vasyerp.rolebasedsystem.model.Country;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -55,14 +56,23 @@ public class UserFrontAddressRepositoryImpl implements UserFrontAddressRepositor
         address.setAddressLine2(rs.getString("address_line_2"));
         address.setCity(rs.getString("city"));
         address.setState(rs.getString("state"));
-        address.setCountry(rs.getString("country"));
+        String countryName = rs.getString("country_name");
+        if (countryName != null) {
+            Country country = new Country();
+            country.setName(countryName);
+            address.setCountryRef(country);
+        }
         return address;
     };
 
     @Override
     public UserFrontAddress save(UserFrontAddress address) {
         if (address.getUserFrontAddressId() == null) {
-            String sql = "INSERT INTO user_front_address (user_front_id, address_type, name, address_line_1, address_line_2, city, state, country) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            String sql = """
+                    INSERT INTO user_front_address (
+                        user_front_id, address_type, name, address_line_1, address_line_2, city, state, country_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT country_id FROM country WHERE name = ?))
+                    """;
             KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbcTemplate.update(connection -> {
                 PreparedStatement ps = connection.prepareStatement(sql, new String[] { "user_front_address_id" });
@@ -81,7 +91,12 @@ public class UserFrontAddressRepositoryImpl implements UserFrontAddressRepositor
                 address.setUserFrontAddressId(key);
             }
         } else {
-            String sql = "UPDATE user_front_address SET user_front_id = ?, address_type = ?, name = ?, address_line_1 = ?, address_line_2 = ?, city = ?, state = ?, country = ? WHERE user_front_address_id = ?";
+            String sql = """
+                    UPDATE user_front_address
+                    SET user_front_id = ?, address_type = ?, name = ?, address_line_1 = ?, address_line_2 = ?,
+                        city = ?, state = ?, country_id = (SELECT country_id FROM country WHERE name = ?)
+                    WHERE user_front_address_id = ?
+                    """;
             jdbcTemplate.update(sql,
                     address.getUserFront().getUserFrontId(),
                     address.getAddressType(),
@@ -98,7 +113,12 @@ public class UserFrontAddressRepositoryImpl implements UserFrontAddressRepositor
 
     @Override
     public Optional<UserFrontAddress> findById(Long id) {
-        String sql = "SELECT * FROM user_front_address WHERE user_front_address_id = ?";
+        String sql = """
+                SELECT ufa.*, c.name AS country_name
+                FROM user_front_address ufa
+                LEFT JOIN country c ON c.country_id = ufa.country_id
+                WHERE ufa.user_front_address_id = ?
+                """;
         try {
             UserFrontAddress address = jdbcTemplate.queryForObject(sql, rowMapper, id);
             return Optional.ofNullable(address);
@@ -109,13 +129,22 @@ public class UserFrontAddressRepositoryImpl implements UserFrontAddressRepositor
 
     @Override
     public List<UserFrontAddress> findAll() {
-        String sql = "SELECT * FROM user_front_address";
+        String sql = """
+                SELECT ufa.*, c.name AS country_name
+                FROM user_front_address ufa
+                LEFT JOIN country c ON c.country_id = ufa.country_id
+                """;
         return jdbcTemplate.query(sql, rowMapper);
     }
 
     @Override
     public List<UserFrontAddress> findByUserFront_UserFrontId(Long userFrontId) {
-        String sql = "SELECT * FROM user_front_address WHERE user_front_id = ?";
+        String sql = """
+                SELECT ufa.*, c.name AS country_name
+                FROM user_front_address ufa
+                LEFT JOIN country c ON c.country_id = ufa.country_id
+                WHERE ufa.user_front_id = ?
+                """;
         return jdbcTemplate.query(sql, rowMapper, userFrontId);
     }
 

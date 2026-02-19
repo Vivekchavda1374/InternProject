@@ -3,6 +3,7 @@ package com.vasyerp.rolebasedsystem.repository;
 import com.vasyerp.rolebasedsystem.model.UserFront;
 import com.vasyerp.rolebasedsystem.model.UserFrontAddress;
 import com.vasyerp.rolebasedsystem.model.UserRole;
+import com.vasyerp.rolebasedsystem.model.Country;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -76,7 +77,12 @@ public class UserFrontRepositoryImpl implements UserFrontRepository {
     private void fetchAddresses(UserFront user) {
         if (user == null || user.getUserFrontId() == null)
             return;
-        String sql = "SELECT * FROM user_front_address WHERE user_front_id = ?";
+        String sql = """
+                SELECT ufa.*, c.name AS country_name
+                FROM user_front_address ufa
+                LEFT JOIN country c ON c.country_id = ufa.country_id
+                WHERE ufa.user_front_id = ?
+                """;
         List<UserFrontAddress> addresses = jdbcTemplate.query(sql, (rs, rowNum) -> {
             UserFrontAddress address = new UserFrontAddress();
             address.setUserFrontAddressId(rs.getLong("user_front_address_id"));
@@ -86,7 +92,12 @@ public class UserFrontRepositoryImpl implements UserFrontRepository {
             address.setAddressLine2(rs.getString("address_line_2"));
             address.setCity(rs.getString("city"));
             address.setState(rs.getString("state"));
-            address.setCountry(rs.getString("country"));
+            String countryName = rs.getString("country_name");
+            if (countryName != null) {
+                Country country = new Country();
+                country.setName(countryName);
+                address.setCountryRef(country);
+            }
             return address;
         }, user.getUserFrontId());
         user.setAddresses(addresses);

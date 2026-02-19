@@ -16,7 +16,6 @@ import com.vasyerp.rolebasedsystem.repository.UserFrontRepository;
 import com.vasyerp.rolebasedsystem.repository.UserRoleNewRepository;
 import com.vasyerp.rolebasedsystem.repository.UserRoleRepository;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -52,7 +51,13 @@ public class UserFrontServiceImpl implements UserFrontService {
     }
 
     @Override
-    @CacheEvict(value = {"userFront", "addresses"}, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "addressesByUser", key = "#userFrontId"),
+            @CacheEvict(value = "userFrontById", allEntries = true),
+            @CacheEvict(value = "usersByCountry", allEntries = true),
+            @CacheEvict(value = "completeDataAll", allEntries = true),
+            @CacheEvict(value = "completeDataByUser", allEntries = true)
+    })
     public AddressDTO addAddress(Long userFrontId, CreateAddressRequest request) {
         UserFront userFront = userFrontRepository.findById(userFrontId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -64,19 +69,19 @@ public class UserFrontServiceImpl implements UserFrontService {
         address.setAddressLine2(request.getAddressLine2());
         address.setCity(request.getCity());
         address.setState(request.getState());
+        if (request.getCountry() != null && !request.getCountry().trim().isEmpty()) {
+            countryService.getOrCreateCountry(request.getCountry());
+        }
         address.setCountry(request.getCountry());
         address.setAddressType(request.getAddressType());
 
         UserFrontAddress savedAddress = addressRepository.save(address);
-        if (request.getCountry() != null && !request.getCountry().trim().isEmpty()) {
-            countryService.getOrCreateCountry(request.getCountry());
-        }
 
         return convertAddressToDTO(savedAddress);
     }
 
     @Override
-    @Cacheable(value = "addresses", key = "'user:' + #userFrontId")
+    @Cacheable(value = "addressesByUser", key = "#userFrontId")
     public List<AddressDTO> getAddresses(Long userFrontId) {
         return addressRepository.findByUserFront_UserFrontId(userFrontId)
                 .stream()
@@ -85,7 +90,13 @@ public class UserFrontServiceImpl implements UserFrontService {
     }
 
     @Override
-    @CacheEvict(value = {"userFront", "addresses"}, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "addressesByUser", allEntries = true),
+            @CacheEvict(value = "userFrontById", allEntries = true),
+            @CacheEvict(value = "usersByCountry", allEntries = true),
+            @CacheEvict(value = "completeDataAll", allEntries = true),
+            @CacheEvict(value = "completeDataByUser", allEntries = true)
+    })
     public void deleteAddress(Long addressId) {
         UserFrontAddress address = addressRepository.findById(addressId)
                 .orElseThrow(() -> new RuntimeException("Address not found"));
@@ -93,7 +104,16 @@ public class UserFrontServiceImpl implements UserFrontService {
     }
 
     @Override
-    @CacheEvict(value = {"userFront", "completeDataService"}, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "allCompanies", allEntries = true),
+            @CacheEvict(value = "branchesByCompany", allEntries = true),
+            @CacheEvict(value = "companiesByUser", allEntries = true),
+            @CacheEvict(value = "userFrontById", allEntries = true),
+            @CacheEvict(value = "addressesByUser", allEntries = true),
+            @CacheEvict(value = "usersByCountry", allEntries = true),
+            @CacheEvict(value = "completeDataAll", allEntries = true),
+            @CacheEvict(value = "completeDataByUser", allEntries = true)
+    })
     public UserFrontDTO createCompany(Long userId, CreateUserFrontRequest request) {
         UserFront currentUser = userFrontRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -132,21 +152,28 @@ public class UserFrontServiceImpl implements UserFrontService {
             address.setAddressLine2(request.getAddressLine2());
             address.setCity(request.getCity());
             address.setState(request.getState());
-            address.setCountry(request.getCountry());
-            address.setAddressType("Primary");
-            addressRepository.save(address);
-
-            // Auto-create country if it doesn't exist
             if (request.getCountry() != null && !request.getCountry().trim().isEmpty()) {
                 countryService.getOrCreateCountry(request.getCountry());
             }
+            address.setCountry(request.getCountry());
+            address.setAddressType("Primary");
+            addressRepository.save(address);
         }
 
         return convertToDTO(userFrontRepository.findById(savedCompany.getUserFrontId()).get());
     }
 
     @Override
-    @CacheEvict(value = {"userFront", "completeDataService"}, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "allCompanies", allEntries = true),
+            @CacheEvict(value = "branchesByCompany", allEntries = true),
+            @CacheEvict(value = "companiesByUser", allEntries = true),
+            @CacheEvict(value = "userFrontById", allEntries = true),
+            @CacheEvict(value = "addressesByUser", allEntries = true),
+            @CacheEvict(value = "usersByCountry", allEntries = true),
+            @CacheEvict(value = "completeDataAll", allEntries = true),
+            @CacheEvict(value = "completeDataByUser", allEntries = true)
+    })
     public UserFrontDTO createBranch(CreateUserFrontRequest request) {
         if (request.getName() == null || request.getName().trim().isEmpty()) {
             throw new RuntimeException("Branch name cannot be empty");
@@ -185,20 +212,19 @@ public class UserFrontServiceImpl implements UserFrontService {
             address.setAddressLine2(request.getAddressLine2());
             address.setCity(request.getCity());
             address.setState(request.getState());
-            address.setCountry(request.getCountry());
-            address.setAddressType("Primary");
-            addressRepository.save(address);
-
             if (request.getCountry() != null && !request.getCountry().trim().isEmpty()) {
                 countryService.getOrCreateCountry(request.getCountry());
             }
+            address.setCountry(request.getCountry());
+            address.setAddressType("Primary");
+            addressRepository.save(address);
         }
 
         return convertToDTO(userFrontRepository.findById(savedBranch.getUserFrontId()).get());
     }
 
     @Override
-    @Cacheable(value = "userFront", key = "'allCompanies'")
+    @Cacheable("allCompanies")
     public List<UserFrontDTO> getAllCompanies() {
         return userFrontRepository.findAll()
                 .stream()
@@ -207,7 +233,7 @@ public class UserFrontServiceImpl implements UserFrontService {
     }
 
     @Override
-    @Cacheable(value = "userFront", key = "'branches:' + #companyId")
+    @Cacheable(value = "branchesByCompany", key = "#companyId")
     public List<UserFrontDTO> getBranchesByCompany(Long companyId) {
         UserFront company = userFrontRepository
                 .findById(companyId)
@@ -220,7 +246,7 @@ public class UserFrontServiceImpl implements UserFrontService {
     }
 
     @Override
-    @Cacheable(value = "userFront", key = "'user:' + #userFrontId")
+    @Cacheable(value = "companiesByUser", key = "#userId")
     public List<UserFrontDTO> getCompaniesByUser(Long userId) {
         UserFront currentUser = userFrontRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -243,7 +269,7 @@ public class UserFrontServiceImpl implements UserFrontService {
     }
 
     @Override
-    @Cacheable(value = "userFront", key = "'id:' + #userFrontId")
+    @Cacheable(value = "userFrontById", key = "#userFrontId")
     public UserFrontDTO getUserFrontById(Long userFrontId) {
         UserFront userFront = userFrontRepository
                 .findById(userFrontId)
@@ -252,7 +278,15 @@ public class UserFrontServiceImpl implements UserFrontService {
     }
 
     @Override
-    @CacheEvict(value = {"userFront", "completeDataService"}, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "allCompanies", allEntries = true),
+            @CacheEvict(value = "branchesByCompany", allEntries = true),
+            @CacheEvict(value = "companiesByUser", allEntries = true),
+            @CacheEvict(value = "userFrontById", allEntries = true),
+            @CacheEvict(value = "usersByCountry", allEntries = true),
+            @CacheEvict(value = "completeDataAll", allEntries = true),
+            @CacheEvict(value = "completeDataByUser", allEntries = true)
+    })
     public UserFrontDTO updateUserFront(Long userFrontId, UpdateUserFrontRequest request) {
         if (request.getName() == null || request.getName().trim().isEmpty()) {
             throw new RuntimeException("Name cannot be empty");
@@ -271,7 +305,18 @@ public class UserFrontServiceImpl implements UserFrontService {
     }
 
     @Override
-    @CacheEvict(value = {"userFront", "userRoles", "completeDataService"}, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "allCompanies", allEntries = true),
+            @CacheEvict(value = "branchesByCompany", allEntries = true),
+            @CacheEvict(value = "companiesByUser", allEntries = true),
+            @CacheEvict(value = "userFrontById", allEntries = true),
+            @CacheEvict(value = "addressesByUser", allEntries = true),
+            @CacheEvict(value = "usersByCountry", allEntries = true),
+            @CacheEvict(value = "userRolesByUser", allEntries = true),
+            @CacheEvict(value = "hasRole", allEntries = true),
+            @CacheEvict(value = "completeDataAll", allEntries = true),
+            @CacheEvict(value = "completeDataByUser", allEntries = true)
+    })
     public void deleteUserFront(Long userFrontId) {
         UserFront userFront = userFrontRepository
                 .findById(userFrontId)
@@ -290,7 +335,10 @@ public class UserFrontServiceImpl implements UserFrontService {
     }
 
     @Override
-    @CacheEvict(value = "userRoles", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "userRolesByUser", key = "#request.userFrontId"),
+            @CacheEvict(value = "hasRole", allEntries = true)
+    })
     public UserRoleDTO assignRoleToUser(AssignUserRoleRequest request) {
         if (!userFrontRepository.existsById(request.getUserFrontId())) {
             throw new RuntimeException("User/Company/Branch not found");
@@ -314,7 +362,10 @@ public class UserFrontServiceImpl implements UserFrontService {
     }
 
     @Override
-    @CacheEvict(value = "userRoles", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "userRolesByUser", key = "#userFrontId"),
+            @CacheEvict(value = "hasRole", allEntries = true)
+    })
     public UserRoleDTO revokeRoleFromUser(Long userFrontId, Long roleId) {
         userFrontRepository
                 .findById(userFrontId)
@@ -329,7 +380,7 @@ public class UserFrontServiceImpl implements UserFrontService {
     }
 
     @Override
-    @Cacheable(value = "userRoles", key = "'user:' + #userFrontId")
+    @Cacheable(value = "userRolesByUser", key = "#userFrontId")
     public UserRoleDTO getUserRoles(Long userFrontId) {
         UserFront userFront = userFrontRepository.findById(userFrontId)
                 .orElseThrow(() -> new RuntimeException("User/Company/Branch not found"));
@@ -354,13 +405,13 @@ public class UserFrontServiceImpl implements UserFrontService {
     }
 
     @Override
-    @Cacheable(value = "roles", key = "'all'")
+    @Cacheable("allRoles")
     public List<UserRole> getAllRoles() {
         return userRoleRepository.findAll();
     }
 
     @Override
-    @Cacheable(value = "userFront", key = "'country:' + #countryName")
+    @Cacheable(value = "usersByCountry", key = "#countryName")
     public List<UserFrontDTO> findByCountry(String countryName) {
         List<UserFrontAddress> addresses = addressRepository.findAll().stream()
                 .filter(address -> countryName.equalsIgnoreCase(address.getCountry()))
@@ -377,7 +428,7 @@ public class UserFrontServiceImpl implements UserFrontService {
     }
 
     @Override
-    @Cacheable(value = "userRoles", key = "'hasRole:' + #userFrontId + ':' + #roleName")
+    @Cacheable(value = "hasRole", key = "#userFrontId + ':' + #roleName")
     public boolean hasRole(Long userFrontId, String roleName) {
         UserFront userFront = userFrontRepository.findById(userFrontId)
                 .orElse(null);

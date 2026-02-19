@@ -8,13 +8,13 @@ import com.vasyerp.rolebasedsystem.model.UserFront;
 import com.vasyerp.rolebasedsystem.repository.ProductRepository;
 import com.vasyerp.rolebasedsystem.repository.UserFrontRepository;
 import org.springframework.cache.annotation.CacheEvict;
-
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -23,27 +23,35 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final UserFrontRepository userFrontRepository;
 
-    public ProductServiceImpl(ProductRepository productRepository,
-                              UserFrontRepository userFrontRepository) {
+    public ProductServiceImpl(ProductRepository productRepository, UserFrontRepository userFrontRepository) {
         this.productRepository = productRepository;
         this.userFrontRepository = userFrontRepository;
     }
 
-
     @Override
-    @CacheEvict(value = {"products", "completeDataService"}, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "productsAll", allEntries = true),
+            @CacheEvict(value = "productsByCompany", allEntries = true),
+            @CacheEvict(value = "productsByBranch", allEntries = true),
+            @CacheEvict(value = "productById", allEntries = true),
+            @CacheEvict(value = "productSearch", allEntries = true),
+            @CacheEvict(value = "completeDataAll", allEntries = true),
+            @CacheEvict(value = "completeDataByUser", allEntries = true)
+    })
     public ProductDTO createProduct(Long userId, Long companyId, CreateProductRequest request) {
-
         if (!hasProductCreatePermission(userId, companyId)) {
-            throw new RuntimeException("User does not have permission to create products");
+            throw new RuntimeException("User does not have permission to create products for this company");
         }
 
         UserFront currentUser = userFrontRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Long actualCompanyId = (currentUser.getParentCompany() == null)
-                ? currentUser.getUserFrontId()
-                : currentUser.getParentCompany().getUserFrontId();
+        Long actualCompanyId;
+        if (currentUser.getParentCompany() == null) {
+            actualCompanyId = currentUser.getUserFrontId();
+        } else {
+            actualCompanyId = currentUser.getParentCompany().getUserFrontId();
+        }
 
         Product product = new Product();
         product.setProductName(request.getProductName());
@@ -58,103 +66,87 @@ public class ProductServiceImpl implements ProductService {
         return convertToDTO(savedProduct);
     }
 
-
     @Override
-    @CacheEvict(value = {"products", "completeDataService"}, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "productsAll", allEntries = true),
+            @CacheEvict(value = "productsByCompany", allEntries = true),
+            @CacheEvict(value = "productsByBranch", allEntries = true),
+            @CacheEvict(value = "productById", allEntries = true),
+            @CacheEvict(value = "productSearch", allEntries = true),
+            @CacheEvict(value = "completeDataAll", allEntries = true),
+            @CacheEvict(value = "completeDataByUser", allEntries = true)
+    })
     public ProductDTO updateProduct(Long userId, Long productId, UpdateProductRequest request) {
-
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
         if (!hasProductUpdatePermission(userId, product.getCompanyId())) {
-            throw new RuntimeException("No permission to update");
+            throw new RuntimeException("User does not have permission to update products for this company");
         }
 
-        if (request.getProductName() != null) product.setProductName(request.getProductName());
-        if (request.getItemCode() != null) product.setItemCode(request.getItemCode());
-        if (request.getMrp() != null) product.setMrp(request.getMrp());
-        if (request.getSellingPrice() != null) product.setSellingPrice(request.getSellingPrice());
-        if (request.getDescription() != null) product.setDescription(request.getDescription());
-        if (request.getStockQuantity() != null) product.setStockQuantity(request.getStockQuantity());
+        if (request.getProductName() != null && !request.getProductName().isEmpty()) {
+            product.setProductName(request.getProductName());
+        }
+        if (request.getItemCode() != null && !request.getItemCode().isEmpty()) {
+            product.setItemCode(request.getItemCode());
+        }
+        if (request.getMrp() != null) {
+            product.setMrp(request.getMrp());
+        }
+        if (request.getSellingPrice() != null) {
+            product.setSellingPrice(request.getSellingPrice());
+        }
+        if (request.getDescription() != null) {
+            product.setDescription(request.getDescription());
+        }
+        if (request.getStockQuantity() != null) {
+            product.setStockQuantity(request.getStockQuantity());
+        }
 
         Product updatedProduct = productRepository.save(product);
         return convertToDTO(updatedProduct);
     }
 
-
     @Override
-    @CacheEvict(value = {"products", "completeDataService"}, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "productsAll", allEntries = true),
+            @CacheEvict(value = "productsByCompany", allEntries = true),
+            @CacheEvict(value = "productsByBranch", allEntries = true),
+            @CacheEvict(value = "productById", allEntries = true),
+            @CacheEvict(value = "productSearch", allEntries = true),
+            @CacheEvict(value = "completeDataAll", allEntries = true),
+            @CacheEvict(value = "completeDataByUser", allEntries = true)
+    })
     public void deleteProduct(Long userId, Long productId) {
-
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
         if (!hasProductDeletePermission(userId, product.getCompanyId())) {
-            throw new RuntimeException("No permission to delete");
+            throw new RuntimeException("User does not have permission to delete products for this company");
         }
 
         productRepository.deleteById(productId);
     }
 
     @Override
-    @Cacheable(value = "products", key = "'allProducts'")
-    public List<ProductDTO> getAllProducts() {
-        return productRepository.findAll()
-                .stream()
-                .map(this::convertToDTO)
-                .toList();
-    }
-
-    @Override
-    @Cacheable(value = "products", key = "'product:' + #productId")
-    public ProductDTO getProductById(Long userId, Long productId) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
-        return convertToDTO(product);
-    }
-
-    @Override
-    @Cacheable(value = "products", key = "'company:' + #targetCompanyId")
+    @Cacheable(value = "productsByCompany", key = "#userId + ':' + #targetCompanyId")
     public List<ProductDTO> getProductsByCompany(Long userId, Long targetCompanyId) {
-
         UserFront currentUser = userFrontRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        validateCompanyAccess(currentUser, targetCompanyId);
-
-        return productRepository.findByCompanyId(targetCompanyId)
-                .stream()
-                .map(this::convertToDTO)
-                .toList();
-    }
-
-    @Override
-    @Cacheable(value = "products",
-            key = "'search:' + #companyId + ':' + #searchTerm")
-    public List<ProductDTO> searchProductsByName(Long userId,
-                                                 Long companyId,
-                                                 String searchTerm) {
-
-        return productRepository.searchProductsByName(companyId, searchTerm)
-                .stream()
-                .map(this::convertToDTO)
-                .toList();
-    }
-
-    @Override
-    public List<ProductDTO> getProductsByBranch(Long userId, Long companyId, Long branchId) {
-        return List.of();
-    }
-
-     private void validateCompanyAccess(UserFront currentUser, Long targetCompanyId) {
-
         boolean isAllowed = false;
-
         if ("admin".equals(currentUser.getName())) {
             isAllowed = true;
         } else if (currentUser.getParentCompany() == null) {
             if (targetCompanyId.equals(currentUser.getUserFrontId())) {
                 isAllowed = true;
+            } else {
+                UserFront targetUser = userFrontRepository.findById(targetCompanyId).orElse(null);
+                if (targetUser != null && currentUser.getUserFrontId()
+                        .equals(targetUser.getParentCompany() != null ? targetUser.getParentCompany().getUserFrontId()
+                                : null)) {
+                    isAllowed = true;
+                }
             }
         } else {
             if (targetCompanyId.equals(currentUser.getUserFrontId())) {
@@ -163,8 +155,46 @@ public class ProductServiceImpl implements ProductService {
         }
 
         if (!isAllowed) {
-            throw new RuntimeException("Access denied");
+            throw new RuntimeException("Access denied to view products of this company/branch");
         }
+
+        List<Product> products = productRepository.findByCompanyId(targetCompanyId);
+        return products.stream().map(this::convertToDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    @Cacheable("productsAll")
+    public List<ProductDTO> getAllProducts() {
+        List<Product> products = productRepository.findAll();
+        return products.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Cacheable(value = "productById", key = "#productId")
+    public ProductDTO getProductById(Long userId, Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+        return convertToDTO(product);
+    }
+
+    @Override
+    @Cacheable(value = "productSearch", key = "#userId + ':' + #companyId + ':' + #searchTerm")
+    public List<ProductDTO> searchProductsByName(Long userId, Long companyId, String searchTerm) {
+        List<Product> products = productRepository.searchProductsByName(companyId, searchTerm);
+        return products.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Cacheable(value = "productsByBranch", key = "#userId + ':' + #companyId + ':' + #branchId")
+    public List<ProductDTO> getProductsByBranch(Long userId, Long companyId, Long branchId) {
+        List<Product> products = productRepository.findByCompanyId(companyId);
+        return products.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     private boolean hasProductCreatePermission(Long userId, Long companyId) {

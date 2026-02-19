@@ -21,7 +21,6 @@
 
     <dependencies>
 
-
         <!-- Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -33,7 +32,10 @@
             <scope>test</scope>
         </dependency>
 
-
+        <dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter</artifactId>
+        </dependency>
         <!-- JSP -->
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
@@ -60,6 +62,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
         <!-- PostgreSQL -->
@@ -92,6 +98,12 @@
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.3.0</version>
+        </dependency>
+        
+        <!-- Prometheus Registry -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
 
     </dependencies>

@@ -45,6 +45,8 @@
                                 <th>Company</th>
                                 <th>Branch</th>
                                 <th>Parent</th>
+                                <th>Total Purchase</th>
+                                <th>Total Products</th>
                                 <th>GST</th>
                                 <th>Phone</th>
                                 <th>Address</th>
@@ -81,7 +83,7 @@
                                 <div class="col-md-6 mb-2"><label>Name</label><input type="text" class="form-control"
                                         name="name" required></div>
                                 <div class="col-md-6 mb-2"><label>Password</label><input type="password"
-                                        class="form-control" name="password"></div>
+                                        class="form-control" name="password" autocomplete="new-password"></div>
                                 <div class="col-md-6 mb-2"><label>GST No</label><input type="text" class="form-control"
                                         name="gstNo"></div>
                                 <div class="col-md-6 mb-2"><label>Phone</label><input type="text" class="form-control"
@@ -140,7 +142,7 @@
                                 <div class="col-md-6 mb-2"><label>Name</label><input type="text" class="form-control"
                                         name="name" required></div>
                                 <div class="col-md-6 mb-2"><label>Password</label><input type="password"
-                                        class="form-control" name="password"></div>
+                                        class="form-control" name="password" autocomplete="new-password"></div>
                                 <div class="col-md-6 mb-2"><label>GST No</label><input type="text" class="form-control"
                                         name="gstNo"></div>
                                 <div class="col-md-6 mb-2"><label>Phone</label><input type="text" class="form-control"
@@ -392,6 +394,12 @@
                         { data: 'companyName', defaultContent: '' },
                         { data: 'branchName', defaultContent: '' },
                         { data: 'parentCompany', defaultContent: '' },
+                        {
+                            data: 'totalPurchaseAmount',
+                            defaultContent: '',
+                            render: (data) => data ? '₹' + data : '₹0'
+                        },
+                        { data: 'totalProducts', defaultContent: '0' },
                         { data: 'gstNo', defaultContent: '' },
                         { data: 'phoneNo', defaultContent: '' },
                         {

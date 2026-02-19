@@ -56,13 +56,15 @@
                                         <th>ID</th>
                                         <th>Company</th>
                                         <th>Branch</th>
+                                        <th>Total Purchase</th>
+                                        <th>Total Sales</th>
+                                        <th>Total Products</th>
                                         <th>GST</th>
                                         <th>Phone</th>
                                         <th>Address</th>
                                         <th>City</th>
                                         <th>State</th>
                                         <th>Country</th>
-                                        <th>Product</th>
 <%--                                        <th>Actions</th>--%>
                                     </tr>
                                 </thead>
@@ -170,9 +172,9 @@
                         <form id="createCompanyForm">
                             <div class="row">
                                 <div class="col-md-6 mb-2"><label>Name</label><input type="text" class="form-control"
-                                        name="name" required></div>
+                                        name="name" autocomplete="organization" required></div>
                                 <div class="col-md-6 mb-2"><label>Password</label><input type="password"
-                                        class="form-control" name="password"></div>
+                                        class="form-control" name="password" autocomplete="new-password"></div>
                                 <div class="col-md-6 mb-2"><label>GST No</label><input type="text" class="form-control"
                                         name="gstNo"></div>
                                 <div class="col-md-6 mb-2"><label>Phone</label><input type="text" class="form-control"
@@ -184,7 +186,6 @@
                                     onclick="addAddressField('#companyAddresses')"><i class="fas fa-plus"></i> Add
                                     Address</button></h6>
                             <div id="companyAddresses">
-                                <!-- Initial Address Block -->
                                 <div class="card p-2 mb-2 bg-light address-block">
                                     <h6 class="card-subtitle mb-2 text-muted">Primary Address</h6>
                                     <input type="hidden" name="addressType" value="Primary">
@@ -229,9 +230,9 @@
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-2"><label>Name</label><input type="text" class="form-control"
-                                        name="name" required></div>
+                                        name="name" autocomplete="organization" required></div>
                                 <div class="col-md-6 mb-2"><label>Password</label><input type="password"
-                                        class="form-control" name="password"></div>
+                                        class="form-control" name="password" autocomplete="new-password"></div>
                                 <div class="col-md-6 mb-2"><label>GST No</label><input type="text" class="form-control"
                                         name="gstNo"></div>
                                 <div class="col-md-6 mb-2"><label>Phone</label><input type="text" class="form-control"
@@ -295,7 +296,7 @@
                                     <input type="hidden" name="id" id="editUserFrontId">
                                     <div class="mb-2">
                                         <label>Name</label>
-                                        <input type="text" class="form-control" name="name" id="editUserFrontName"
+                                        <input type="text" class="form-control" name="name" id="editUserFrontName" autocomplete="organization"
                                             required>
                                     </div>
                                     <div class="alert alert-warning small">
@@ -575,14 +576,14 @@
                 });
 
                 $.ajax({
-                    url: '/api/complete',
+                    url: '/api/products',
                     type: 'GET',
-                    headers: { 'userId': currentUserId, 'isAdmin': currentUserIsAdmin },
-                    success: function (data) {
-                        products = (data || []).filter(item => item.type === 'Product').map(p => ({
-                            id: p.id,
+                    success: function (response) {
+                        const list = response?.data || [];
+                        products = list.map(p => ({
+                            id: p.productId ?? p.id,
                             productName: p.productName,
-                            companyId: p.userFrontId,
+                            companyId: p.companyId ?? p.userFrontId,
                             mrp: p.mrp,
                             sellingPrice: p.sellingPrice
                         }));
@@ -677,6 +678,23 @@
                         { data: 'id' },
                         { data: 'companyName', defaultContent: '' },
                         { data: 'branchName', defaultContent: '' },
+                        {
+                            data: 'totalPurchaseAmount',
+                            defaultContent: '0',
+                            render: function (data) {
+                                const value = parseFloat(data || 0);
+                                return '₹' + value.toFixed(2);
+                            }
+                        },
+                        {
+                            data: 'totalSalesAmount',
+                            defaultContent: '0',
+                            render: function (data) {
+                                const value = parseFloat(data || 0);
+                                return '₹' + value.toFixed(2);
+                            }
+                        },
+                        { data: 'totalProducts', defaultContent: '0' },
                         { data: 'gstNo', defaultContent: '' },
                         { data: 'phoneNo', defaultContent: '' },
                         {
@@ -691,8 +709,7 @@
                         },
                         { data: 'city', defaultContent: '' },
                         { data: 'state', defaultContent: '' },
-                        { data: 'country', defaultContent: '' },
-                        { data: 'productCount', defaultContent: '0' }
+                        { data: 'country', defaultContent: '' }
                         // {
                         //     data: null,
                         //     render: function (data, type, row) {
@@ -1249,13 +1266,14 @@
 
             function loadAllProducts(callback) {
                 $.ajax({
-                    url: '/api/complete',
+                    url: '/api/products',
                     type: 'GET',
-                    success: function (data) {
-                        products = (data || []).filter(item => item.type === 'Product').map(p => ({
-                            id: p.id,
+                    success: function (response) {
+                        const list = response?.data || [];
+                        products = list.map(p => ({
+                            id: p.productId ?? p.id,
                             productName: p.productName,
-                            companyId: p.userFrontId,
+                            companyId: p.companyId ?? p.userFrontId,
                             mrp: p.mrp,
                             sellingPrice: p.sellingPrice
                         }));

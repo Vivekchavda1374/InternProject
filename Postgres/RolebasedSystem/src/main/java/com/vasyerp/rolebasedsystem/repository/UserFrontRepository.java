@@ -23,4 +23,6 @@ public interface UserFrontRepository {
     boolean existsById(Long id);
 
     void deleteById(Long id);
+
+    
 }

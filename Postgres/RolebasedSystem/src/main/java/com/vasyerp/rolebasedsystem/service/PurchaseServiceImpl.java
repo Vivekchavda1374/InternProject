@@ -12,6 +12,7 @@ import com.vasyerp.rolebasedsystem.repository.PurchaseRepository;
 import com.vasyerp.rolebasedsystem.repository.UserFrontRepository;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 @Service
 public class PurchaseServiceImpl implements PurchaseService {
 
@@ -39,22 +41,26 @@ public class PurchaseServiceImpl implements PurchaseService {
 
     @Override
     @Transactional
-    @CacheEvict(value = {"purchases", "products", "completeDataService"}, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "purchasesAll", allEntries = true),
+            @CacheEvict(value = "purchasesByBranch", allEntries = true),
+            @CacheEvict(value = "purchasesByCompany", allEntries = true),
+            @CacheEvict(value = "productsAll", allEntries = true),
+            @CacheEvict(value = "productsByCompany", allEntries = true),
+            @CacheEvict(value = "productsByBranch", allEntries = true),
+            @CacheEvict(value = "productById", allEntries = true),
+            @CacheEvict(value = "productSearch", allEntries = true),
+            @CacheEvict(value = "completeDataAll", allEntries = true),
+            @CacheEvict(value = "completeDataByUser", allEntries = true)
+    })
     public PurchaseDTO createPurchase(CreatePurchaseRequest request) {
-
         UserFront company = userFrontRepository.findById(request.getCompanyId())
                 .orElseThrow(() -> new RuntimeException("Company not found"));
-
         UserFront branch = userFrontRepository.findById(request.getBranchId())
                 .orElseThrow(() -> new RuntimeException("Branch not found"));
-
         validateCompanyBranchRelation(company, branch);
-
         boolean allowExternal = Boolean.TRUE.equals(request.getAllowExternalProducts());
-        Long destinationOwnerId =
-                request.getBranchId() != null ?
-                        request.getBranchId() :
-                        request.getCompanyId();
+        Long destinationOwnerId = request.getBranchId() != null ? request.getBranchId() : request.getCompanyId();
 
         Purchase purchase = new Purchase();
         purchase.setContactId(request.getContactId());
@@ -69,42 +75,32 @@ public class PurchaseServiceImpl implements PurchaseService {
         double computedTotal = 0.0;
 
         for (CreatePurchaseRequest.PurchaseItemRequest item : request.getItems()) {
-
             Product sourceProduct = productRepository.findById(item.getProductId())
                     .orElseThrow(() -> new RuntimeException("Product not found"));
-
             validateQuantity(item.getQuantity());
 
             Product targetProduct;
-
             if (allowExternal) {
                 targetProduct = resolveExternalPurchaseTarget(sourceProduct, destinationOwnerId);
             } else {
-                validateProductBelongsToTransaction(
-                        sourceProduct,
-                        request.getCompanyId(),
-                        request.getBranchId()
-                );
+                validateProductBelongsToTransaction(sourceProduct, request.getCompanyId(), request.getBranchId());
                 targetProduct = sourceProduct;
             }
 
             increaseStock(targetProduct, item.getQuantity());
             double purchasePrice = resolvePurchasePrice(sourceProduct);
-
             PurchaseItem purchaseItem = new PurchaseItem();
             purchaseItem.setPurchase(savedPurchase);
             purchaseItem.setProduct(targetProduct);
             purchaseItem.setQuantity(item.getQuantity());
             purchaseItem.setPurchasePrice(purchasePrice);
-
             purchaseItemRepository.save(purchaseItem);
-            productRepository.save(targetProduct);
 
+            productRepository.save(targetProduct);
             if (!targetProduct.getProductId().equals(sourceProduct.getProductId())) {
                 reduceStockWithCheck(sourceProduct, item.getQuantity());
                 productRepository.save(sourceProduct);
             }
-
             computedTotal += item.getQuantity() * purchasePrice;
         }
 
@@ -114,63 +110,27 @@ public class PurchaseServiceImpl implements PurchaseService {
         return toDTO(savedPurchase);
     }
 
-    @Override
-    @Cacheable(value = "purchases", key = "'all'")
-    public List<PurchaseDTO> getAllPurchases() {
-        return purchaseRepository.findAll()
-                .stream()
-                .map(this::toDTO)
-                .toList();
-    }
-
-    @Override
-    @Cacheable(value = "purchases", key = "'branch:' + #branchId")
-    public List<PurchaseDTO> getPurchasesByBranch(Long branchId) {
-        return purchaseRepository.findByBranch_UserFrontId(branchId)
-                .stream()
-                .map(this::toDTO)
-                .toList();
-    }
-
-    @Override
-    @Cacheable(value = "purchases", key = "'company:' + #companyId")
-    public List<PurchaseDTO> getPurchasesByCompany(Long companyId) {
-        return purchaseRepository.findByCompany_UserFrontId(companyId)
-                .stream()
-                .map(this::toDTO)
-                .toList();
-    }
-
-    @Override
-    @CacheEvict(value = {"purchases", "products", "completeDataService"}, allEntries = true)
-    public void deletePurchase(Long id) {
-        purchaseRepository.deleteById(id);
-    }
-
-    private void validateProductBelongsToTransaction(Product product,
-                                                     Long companyId,
-                                                     Long branchId) {
-
+    private void validateProductBelongsToTransaction(Product product, Long companyId, Long branchId) {
         Long ownerId = product.getCompanyId();
-
-        if (ownerId == null ||
-                (!ownerId.equals(companyId) &&
-                        !ownerId.equals(branchId))) {
-            throw new RuntimeException("Product does not belong to selected company/branch");
+        if (ownerId == null || (!ownerId.equals(companyId) && !ownerId.equals(branchId))) {
+            throw new RuntimeException("Selected product does not belong to the selected company/branch");
         }
     }
 
-    private void validateCompanyBranchRelation(UserFront company,
-                                               UserFront branch) {
-
-        if (company.getUserFrontId().equals(branch.getUserFrontId())) return;
+    private void validateCompanyBranchRelation(UserFront company, UserFront branch) {
+        if (company.getUserFrontId().equals(branch.getUserFrontId())) {
+            return;
+        }
 
         if (branch.getParentCompany() == null ||
-                !company.getUserFrontId()
-                        .equals(branch.getParentCompany().getUserFrontId())) {
-
-            throw new RuntimeException("Branch does not belong to selected company");
+                !company.getUserFrontId().equals(branch.getParentCompany().getUserFrontId())) {
+            throw new RuntimeException("Selected branch does not belong to selected company");
         }
+    }
+
+    private void increaseStock(Product product, Double quantity) {
+        double currentStock = product.getStockQuantity() == null ? 0.0 : product.getStockQuantity();
+        product.setStockQuantity(currentStock + quantity);
     }
 
     private void validateQuantity(Double quantity) {
@@ -179,84 +139,84 @@ public class PurchaseServiceImpl implements PurchaseService {
         }
     }
 
-    private void increaseStock(Product product, Double quantity) {
-        double current = product.getStockQuantity() == null ?
-                0.0 : product.getStockQuantity();
-
-        product.setStockQuantity(current + quantity);
-    }
-
     private void reduceStockWithCheck(Product product, Double quantity) {
-        double current = product.getStockQuantity() == null ?
-                0.0 : product.getStockQuantity();
-
-        if (current < quantity) {
+        double currentStock = product.getStockQuantity() == null ? 0.0 : product.getStockQuantity();
+        if (currentStock < quantity) {
             throw new RuntimeException(
-                    "Insufficient stock for product: " +
-                            product.getProductName());
+                    "Insufficient stock for product: " + product.getProductName() + ". Available: " + currentStock);
         }
-
-        product.setStockQuantity(current - quantity);
+        product.setStockQuantity(currentStock - quantity);
     }
 
-    private Product resolveExternalPurchaseTarget(Product source,
-                                                  Long destinationOwnerId) {
-
-        if (source.getCompanyId().equals(destinationOwnerId)) {
-            return source;
+    private Product resolveExternalPurchaseTarget(Product sourceProduct, Long destinationOwnerId) {
+        if (sourceProduct.getCompanyId().equals(destinationOwnerId)) {
+            return sourceProduct;
         }
 
-        Optional<Product> existing = Optional.empty();
-
-        if (source.getItemCode() != null &&
-                !source.getItemCode().isBlank()) {
-
-            existing = productRepository
-                    .findByItemCodeAndCompanyId(
-                            source.getItemCode(),
-                            destinationOwnerId);
+        Optional<Product> existingTarget = Optional.empty();
+        if (sourceProduct.getItemCode() != null && !sourceProduct.getItemCode().isBlank()) {
+            existingTarget = productRepository.findByItemCodeAndCompanyId(sourceProduct.getItemCode(), destinationOwnerId);
+        }
+        if (existingTarget.isEmpty()) {
+            existingTarget = productRepository.findByProductNameAndCompanyId(sourceProduct.getProductName(), destinationOwnerId);
         }
 
-        if (existing.isEmpty()) {
-            existing = productRepository
-                    .findByProductNameAndCompanyId(
-                            source.getProductName(),
-                            destinationOwnerId);
+        if (existingTarget.isPresent()) {
+            return existingTarget.get();
         }
 
-        if (existing.isPresent()) return existing.get();
-
-        Product cloned = new Product();
-        cloned.setProductName(source.getProductName());
-        cloned.setCompanyId(destinationOwnerId);
-        cloned.setItemCode(source.getItemCode());
-        cloned.setMrp(source.getMrp());
-        cloned.setSellingPrice(source.getSellingPrice());
-        cloned.setDescription(source.getDescription());
-        cloned.setStockQuantity(0.0);
-
-        return productRepository.save(cloned);
+        Product clonedProduct = new Product();
+        clonedProduct.setProductName(sourceProduct.getProductName());
+        clonedProduct.setCompanyId(destinationOwnerId);
+        clonedProduct.setItemCode(sourceProduct.getItemCode());
+        clonedProduct.setMrp(sourceProduct.getMrp());
+        clonedProduct.setSellingPrice(sourceProduct.getSellingPrice());
+        clonedProduct.setDescription(sourceProduct.getDescription());
+        clonedProduct.setStockQuantity(0.0);
+        return productRepository.save(clonedProduct);
     }
 
     private double resolvePurchasePrice(Product product) {
-
-        Double price = product.getMrp() != null ?
-                product.getMrp() :
-                product.getSellingPrice();
-
+        Double price = product.getMrp() != null ? product.getMrp() : product.getSellingPrice();
         if (price == null) {
-            throw new RuntimeException(
-                    "Price not set for product: " +
-                            product.getProductName());
+            throw new RuntimeException("Price not set for product: " + product.getProductName());
         }
-
         return price;
     }
 
+    @Override
+    @Cacheable("purchasesAll")
+    public List<PurchaseDTO> getAllPurchases() {
+        return purchaseRepository.findAll().stream()
+                .map(this::toDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    @Cacheable(value = "purchasesByBranch", key = "#branchId")
+    public List<PurchaseDTO> getPurchasesByBranch(Long branchId) {
+        return purchaseRepository.findByBranch_UserFrontId(branchId).stream()
+                .map(this::toDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    @Cacheable(value = "purchasesByCompany", key = "#companyId")
+    public List<PurchaseDTO> getPurchasesByCompany(Long companyId) {
+        return purchaseRepository.findByCompany_UserFrontId(companyId).stream()
+                .map(this::toDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    @Caching(evict = {
+            @CacheEvict(value = "purchasesAll", allEntries = true),
+            @CacheEvict(value = "purchasesByBranch", allEntries = true),
+            @CacheEvict(value = "purchasesByCompany", allEntries = true)
+    })
+    public void deletePurchase(Long id) {
+        purchaseRepository.deleteById(id);
+    }
+
     private PurchaseDTO toDTO(Purchase purchase) {
-
         PurchaseDTO dto = new PurchaseDTO();
-
         dto.setPurchaseId(purchase.getPurchaseId());
         dto.setContactId(purchase.getContactId());
         dto.setCompanyId(purchase.getCompany().getUserFrontId());
@@ -265,7 +225,6 @@ public class PurchaseServiceImpl implements PurchaseService {
         dto.setPurchaseNo(purchase.getPurchaseNo());
         dto.setTotalAmount(purchase.getTotalAmount());
         dto.setPurchaseDate(purchase.getPurchaseDate());
-
         return dto;
     }
 }
