@@ -26,7 +26,7 @@
                                     <label class="form-label">Name</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                        <input type="text" class="form-control" name="name" required>
+                                        <input type="text" class="form-control" name="name" autocomplete="username" required>
                                     </div>
                                 </div>
 
@@ -34,7 +34,7 @@
                                     <label class="form-label">Password</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                        <input type="password" class="form-control" name="password" required>
+                                        <input type="password" class="form-control" name="password" autocomplete="current-password" required>
                                     </div>
                                 </div>
 
@@ -42,12 +42,6 @@
                                     <i class="fas fa-sign-in-alt"></i> Sign In
                                 </button>
                             </form>
-
-                            <div class="text-center">
-                                <small class="text-muted">
-                                    Default: admin/admin (Admin) | user/user (User)
-                                </small>
-                            </div>
                         </div>
                     </div>
                 </div>

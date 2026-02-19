@@ -10,22 +10,23 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-
 @Service
 public class CompleteDataServiceImpl implements CompleteDataService {
 
     private final UserFrontRepository userFrontRepository;
     private final ProductRepository productRepository;
 
-    public CompleteDataServiceImpl(UserFrontRepository userFrontRepository, ProductRepository productRepository) {
+    public CompleteDataServiceImpl(UserFrontRepository userFrontRepository,
+                                   ProductRepository productRepository) {
         this.userFrontRepository = userFrontRepository;
         this.productRepository = productRepository;
     }
 
     @Override
     public List<CompleteDataDTO> getAllData() {
+
         List<CompleteDataDTO> result = new ArrayList<>();
-        long hierarchyOrderArray[] = { 1 };
+        long hierarchyOrder = 1;
 
         var users = userFrontRepository.findAll();
         var products = productRepository.findAll();
@@ -36,24 +37,33 @@ public class CompleteDataServiceImpl implements CompleteDataService {
         List<UserFront> companies = users.stream()
                 .filter(u -> u.getParentCompany() == null)
                 .sorted((c1, c2) -> c1.getUserFrontId().compareTo(c2.getUserFrontId()))
-                .collect(Collectors.toList());
+                .toList();
 
         var branchesByCompany = users.stream()
                 .filter(u -> u.getParentCompany() != null)
-                .collect(Collectors.groupingBy(u -> u.getParentCompany().getUserFrontId()));
+                .collect(Collectors.groupingBy(
+                        u -> u.getParentCompany().getUserFrontId()));
 
         for (UserFront company : companies) {
-            Long companyProductCount = productsByCompany.getOrDefault(company.getUserFrontId(), 0L);
-            result.add(createDTO(company, companyProductCount, hierarchyOrderArray[0]++));
 
-            // Add Branches for this Company
-            List<UserFront> companyBranches = branchesByCompany.getOrDefault(company.getUserFrontId(),
-                    new ArrayList<>());
-            companyBranches.sort((b1, b2) -> b1.getUserFrontId().compareTo(b2.getUserFrontId()));
+            Long companyProductCount =
+                    productsByCompany.getOrDefault(company.getUserFrontId(), 0L);
+
+            result.add(createDTO(company, companyProductCount, hierarchyOrder++));
+
+            List<UserFront> companyBranches =
+                    branchesByCompany.getOrDefault(company.getUserFrontId(),
+                            new ArrayList<>());
+
+            companyBranches.sort((b1, b2) ->
+                    b1.getUserFrontId().compareTo(b2.getUserFrontId()));
 
             for (UserFront branch : companyBranches) {
-                Long branchProductCount = productsByCompany.getOrDefault(branch.getUserFrontId(), 0L);
-                result.add(createDTO(branch, branchProductCount, hierarchyOrderArray[0]++));
+
+                Long branchProductCount =
+                        productsByCompany.getOrDefault(branch.getUserFrontId(), 0L);
+
+                result.add(createDTO(branch, branchProductCount, hierarchyOrder++));
             }
         }
 
@@ -62,55 +72,69 @@ public class CompleteDataServiceImpl implements CompleteDataService {
 
     @Override
     public List<CompleteDataDTO> getDataByUser(Long userId, boolean isAdmin) {
+
         if (isAdmin) {
             return getAllData();
         }
 
         List<CompleteDataDTO> result = new ArrayList<>();
-        long hierarchyOrderArray[] = { 1 };
-        var userOpt = userFrontRepository.findById(userId);
+        long hierarchyOrder = 1;
 
-        if (userOpt.isEmpty()) {
-            return result;
-        }
+        var userOpt = userFrontRepository.findById(userId);
+        if (userOpt.isEmpty()) return result;
 
         var currentUser = userOpt.get();
         List<UserFront> relevantUsers = new ArrayList<>();
 
         if (currentUser.getParentCompany() == null) {
+
             relevantUsers = userFrontRepository.findAll().stream()
-                    .filter(u -> u.getUserFrontId().equals(userId) ||
-                            (u.getParentCompany() != null && u.getParentCompany().getUserFrontId().equals(userId)))
-                    .collect(Collectors.toList());
+                    .filter(u ->
+                            u.getUserFrontId().equals(userId) ||
+                                    (u.getParentCompany() != null &&
+                                            u.getParentCompany().getUserFrontId().equals(userId)))
+                    .toList();
         } else {
             relevantUsers.add(currentUser);
         }
 
-        List<Long> relevantUserIds = relevantUsers.stream()
-                .map(UserFront::getUserFrontId)
-                .collect(Collectors.toList());
+        List<Long> relevantUserIds =
+                relevantUsers.stream()
+                        .map(UserFront::getUserFrontId)
+                        .toList();
 
         var products = productRepository.findAll().stream()
                 .filter(p -> relevantUserIds.contains(p.getCompanyId()))
-                .collect(Collectors.toList());
+                .toList();
 
         var productsByCompany = products.stream()
-                .collect(Collectors.groupingBy(Product::getCompanyId, Collectors.counting()));
+                .collect(Collectors.groupingBy(
+                        Product::getCompanyId,
+                        Collectors.counting()));
 
-        relevantUsers.forEach(user -> {
-            Long count = productsByCompany.getOrDefault(user.getUserFrontId(), 0L);
-            result.add(createDTO(user, count, hierarchyOrderArray[0]++));
-        });
+        for (UserFront user : relevantUsers) {
+
+            Long count =
+                    productsByCompany.getOrDefault(user.getUserFrontId(), 0L);
+
+            result.add(createDTO(user, count, hierarchyOrder++));
+        }
 
         return result;
     }
 
-    private CompleteDataDTO createDTO(UserFront user, Long productCount, Long hierarchyOrder) {
+
+    private CompleteDataDTO createDTO(UserFront user,
+                                      Long productCount,
+                                      Long hierarchyOrder) {
+
         CompleteDataDTO dto = new CompleteDataDTO();
 
         dto.setCompanyName(user.getParentCompany() == null ? user.getName() : null);
         dto.setBranchName(user.getParentCompany() != null ? user.getName() : null);
-        dto.setParentCompany(user.getParentCompany() != null ? user.getParentCompany().getName() : null);
+        dto.setParentCompany(user.getParentCompany() != null ?
+                user.getParentCompany().getName() : null);
+
         dto.setGstNo(user.getGstNo());
         dto.setPhoneNo(user.getPhoneNo());
 
@@ -125,14 +149,12 @@ public class CompleteDataServiceImpl implements CompleteDataService {
         }
 
         if (user.getRoles() != null && !user.getRoles().isEmpty()) {
-            dto.setRoleName(user.getRoles().stream().findFirst().get().getRoleName());
+            dto.setRoleName(user.getRoles().getClass().getTypeName());
         }
 
         dto.setUserFrontId(user.getUserFrontId());
-
         dto.setProductCount(productCount != null ? productCount : 0L);
         dto.setHierarchyOrder(hierarchyOrder);
-
         dto.setId(user.getUserFrontId());
         dto.setType(user.getParentCompany() == null ? "Company" : "Branch");
 

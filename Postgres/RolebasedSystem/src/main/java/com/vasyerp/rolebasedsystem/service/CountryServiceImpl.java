@@ -2,10 +2,11 @@ package com.vasyerp.rolebasedsystem.service;
 
 import com.vasyerp.rolebasedsystem.model.Country;
 import com.vasyerp.rolebasedsystem.repository.CountryRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-
 @Service
 public class CountryServiceImpl implements CountryService {
 
@@ -16,19 +17,25 @@ public class CountryServiceImpl implements CountryService {
     }
 
     @Override
+    @Cacheable(value = "countryList", key = "'all'")
     public List<Country> getAllCountries() {
         return countryRepository.findAll();
     }
 
+    @Override
+    @CacheEvict(value = "countryList", allEntries = true)
     public Country getOrCreateCountry(String countryName) {
+
         if (countryName == null || countryName.trim().isEmpty()) {
             return null;
         }
 
-        return countryRepository.findByName(countryName.trim())
+        String trimmedName = countryName.trim();
+
+        return countryRepository.findByName(trimmedName)
                 .orElseGet(() -> {
                     Country newCountry = new Country();
-                    newCountry.setName(countryName.trim());
+                    newCountry.setName(trimmedName);
                     return countryRepository.save(newCountry);
                 });
     }
