@@ -9,6 +9,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @Controller
 public class AuthController {
 
@@ -33,8 +35,8 @@ public class AuthController {
         if (user != null && passwordEncoder.matches(password, user.getPassword())) {
             session.setAttribute("userId", user.getUserFrontId());
             session.setAttribute("name", user.getName());
-            session.setAttribute("isAdmin", "admin".equals(user.getName()));
-            session.setAttribute("isCompany", user.getParentCompany() == null);
+            session.setAttribute("isAdmin", user.getName().equals("admin"));
+            session.setAttribute("isCompany", !(user.getParentCompany() != null));
             return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", null));
         }
         return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Invalid credentials", null));
@@ -53,7 +55,7 @@ public class AuthController {
         Long userId = (Long) session.getAttribute("userId");
         if (userId != null) {
             return ResponseEntity.ok(new ApiResponse<>(true, "Session active",
-                    java.util.Map.of(
+                    Map.of(
                             "userId", session.getAttribute("userId"),
                             "name", session.getAttribute("name"),
                             "isAdmin", session.getAttribute("isAdmin"),

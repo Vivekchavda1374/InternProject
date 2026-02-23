@@ -4,7 +4,6 @@ import com.vasyerp.rolebasedsystem.dto.ApiResponse;
 import com.vasyerp.rolebasedsystem.dto.CreateSalesRequest;
 import com.vasyerp.rolebasedsystem.dto.SalesDTO;
 import com.vasyerp.rolebasedsystem.service.SalesService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -13,8 +12,11 @@ import java.util.List;
 @RequestMapping("/api/sales")
 public class SalesController {
 
-    @Autowired
     private SalesService salesService;
+
+    public SalesController(SalesService salesService) {
+        this.salesService = salesService;
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<SalesDTO>> createSales(@RequestBody CreateSalesRequest request) {

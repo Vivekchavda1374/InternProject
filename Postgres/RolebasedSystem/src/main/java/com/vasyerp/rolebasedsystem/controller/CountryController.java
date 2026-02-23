@@ -15,7 +15,6 @@ import java.util.List;
 @RequestMapping("/api/countries")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class CountryController {
-
     private final CountryService countryService;
 
     public CountryController(CountryService countryService) {

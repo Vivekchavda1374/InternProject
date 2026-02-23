@@ -40,4 +40,6 @@ public class CustomErrorController implements ErrorController {
         modelAndView.addObject("path", path == null ? request.getRequestURI() : path);
         return modelAndView;
     }
+
+
 }

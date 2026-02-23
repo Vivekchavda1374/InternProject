@@ -22,6 +22,8 @@ public interface UserFrontService {
 
     UserFrontDTO createBranch(CreateUserFrontRequest request);
 
+    boolean branchNameExists(Long parentCompanyId, String branchName);
+
     List<UserFrontDTO> getAllCompanies();
 
     List<UserFrontDTO> getBranchesByCompany(Long companyId);

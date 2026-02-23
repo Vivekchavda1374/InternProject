@@ -24,11 +24,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class UserFrontServiceImpl implements UserFrontService {
+    private static final Pattern namePattern = Pattern.compile("^[A-Za-z0-9 ]+_*");
 
     private final UserFrontRepository userFrontRepository;
     private final UserRoleRepository userRoleRepository;
@@ -62,18 +64,21 @@ public class UserFrontServiceImpl implements UserFrontService {
         UserFront userFront = userFrontRepository.findById(userFrontId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        String country = normalizeText(request.getCountry());
+        if (country == null) {
+            throw new RuntimeException("Country is required for address");
+        }
+        countryService.getOrCreateCountry(country);
+
         UserFrontAddress address = new UserFrontAddress();
         address.setUserFront(userFront);
-        address.setName(request.getName());
-        address.setAddressLine1(request.getAddressLine1());
-        address.setAddressLine2(request.getAddressLine2());
-        address.setCity(request.getCity());
-        address.setState(request.getState());
-        if (request.getCountry() != null && !request.getCountry().trim().isEmpty()) {
-            countryService.getOrCreateCountry(request.getCountry());
-        }
-        address.setCountry(request.getCountry());
-        address.setAddressType(request.getAddressType());
+        address.setName(normalizeText(request.getName()));
+        address.setAddressLine1(normalizeText(request.getAddressLine1()));
+        address.setAddressLine2(normalizeText(request.getAddressLine2()));
+        address.setCity(normalizeText(request.getCity()));
+        address.setState(normalizeText(request.getState()));
+        address.setCountry(country);
+        address.setAddressType(normalizeText(request.getAddressType()));
 
         UserFrontAddress savedAddress = addressRepository.save(address);
 
@@ -144,20 +149,13 @@ public class UserFrontServiceImpl implements UserFrontService {
 
         UserFront savedCompany = userFrontRepository.save(company);
 
-        if (request.getAddressLine1() != null || request.getCity() != null) {
-            UserFrontAddress address = new UserFrontAddress();
-            address.setUserFront(savedCompany);
-            address.setName(savedCompany.getName());
-            address.setAddressLine1(request.getAddressLine1());
-            address.setAddressLine2(request.getAddressLine2());
-            address.setCity(request.getCity());
-            address.setState(request.getState());
-            if (request.getCountry() != null && !request.getCountry().trim().isEmpty()) {
-                countryService.getOrCreateCountry(request.getCountry());
+        if (hasAddressInput(request)) {
+            String country = normalizeText(request.getCountry());
+            if (country == null) {
+                throw new RuntimeException("Country is required when address is provided");
             }
-            address.setCountry(request.getCountry());
-            address.setAddressType("Primary");
-            addressRepository.save(address);
+            countryService.getOrCreateCountry(country);
+            addressRepository.save(buildPrimaryAddress(savedCompany, request, country));
         }
 
         return convertToDTO(userFrontRepository.findById(savedCompany.getUserFrontId()).get());
@@ -175,9 +173,8 @@ public class UserFrontServiceImpl implements UserFrontService {
             @CacheEvict(value = "completeDataByUser", allEntries = true)
     })
     public UserFrontDTO createBranch(CreateUserFrontRequest request) {
-        if (request.getName() == null || request.getName().trim().isEmpty()) {
-            throw new RuntimeException("Branch name cannot be empty");
-        }
+        String normalizedBranchName = normalizeBranchName(request.getName());
+        validateBranchName(normalizedBranchName);
 
         if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
             throw new RuntimeException("Password cannot be empty");
@@ -194,8 +191,14 @@ public class UserFrontServiceImpl implements UserFrontService {
             throw new RuntimeException("Cannot create branch under a branch. Parent must be a company");
         }
 
+        if (userFrontRepository.existsBranchByParentCompanyIdAndName(
+                request.getParentCompanyId(), normalizedBranchName)) {
+            throw new RuntimeException("Branch already exists.");
+        }
+
+
         UserFront branch = new UserFront();
-        branch.setName(request.getName());
+        branch.setName(normalizedBranchName);
         branch.setPassword(passwordEncoder.encode(request.getPassword()));
         branch.setParentCompany(parentCompany);
         branch.setGstNo(request.getGstNo());
@@ -204,23 +207,25 @@ public class UserFrontServiceImpl implements UserFrontService {
 
         UserFront savedBranch = userFrontRepository.save(branch);
 
-        if (request.getAddressLine1() != null || request.getCity() != null) {
-            UserFrontAddress address = new UserFrontAddress();
-            address.setUserFront(savedBranch);
-            address.setName(savedBranch.getName());
-            address.setAddressLine1(request.getAddressLine1());
-            address.setAddressLine2(request.getAddressLine2());
-            address.setCity(request.getCity());
-            address.setState(request.getState());
-            if (request.getCountry() != null && !request.getCountry().trim().isEmpty()) {
-                countryService.getOrCreateCountry(request.getCountry());
+        if (hasAddressInput(request)) {
+            String country = normalizeText(request.getCountry());
+            if (country == null) {
+                throw new RuntimeException("Country is required when address is provided");
             }
-            address.setCountry(request.getCountry());
-            address.setAddressType("Primary");
-            addressRepository.save(address);
+            countryService.getOrCreateCountry(country);
+            addressRepository.save(buildPrimaryAddress(savedBranch, request, country));
         }
 
         return convertToDTO(userFrontRepository.findById(savedBranch.getUserFrontId()).get());
+    }
+
+    @Override
+    public boolean branchNameExists(Long parentCompanyId, String branchName) {
+        String normalizedBranchName = normalizeBranchName(branchName);
+        if ((parentCompanyId == null) || normalizedBranchName.isEmpty()) {
+            return false;
+        }
+        return userFrontRepository.existsBranchByParentCompanyIdAndName(parentCompanyId, normalizedBranchName);
     }
 
     @Override
@@ -464,4 +469,47 @@ public class UserFrontServiceImpl implements UserFrontService {
                 address.getCountry(),
                 address.getAddressType());
     }
+
+    private String normalizeBranchName(String branchName) {
+        return branchName == null ? "" : branchName.trim();
+    }
+
+    private void validateBranchName(String branchName) {
+        if (branchName.isEmpty()) {
+            throw new RuntimeException("Branch name cannot be empty");
+        }
+        if (!namePattern.matcher(branchName).matches()) {
+            throw new RuntimeException("Branch name must not contain special characters");
+        }
+    }
+
+    private boolean hasAddressInput(CreateUserFrontRequest request) {
+        return hasText(request.getAddressLine1())
+                || hasText(request.getAddressLine2())
+                || hasText(request.getCity())
+                || hasText(request.getState())
+                || hasText(request.getCountry());
+    }
+
+    private UserFrontAddress buildPrimaryAddress(UserFront userFront, CreateUserFrontRequest request, String country) {
+        UserFrontAddress address = new UserFrontAddress();
+        address.setUserFront(userFront);
+        address.setName(userFront.getName());
+        address.setAddressLine1(normalizeText(request.getAddressLine1()));
+        address.setAddressLine2(normalizeText(request.getAddressLine2()));
+        address.setCity(normalizeText(request.getCity()));
+        address.setState(normalizeText(request.getState()));
+        address.setCountry(country);
+        address.setAddressType("Primary");
+        return address;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private String normalizeText(String value) {
+        return hasText(value) ? value.trim() : null;
+    }
+
 }

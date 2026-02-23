@@ -59,6 +59,8 @@
     </div>
 </div>
 
+<div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer" style="z-index: 1080;"></div>
+
 <div class="modal fade" id="createCompanyModal">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -199,6 +201,7 @@
 <script>
     let table;
     let isAdmin = false;
+    const BRANCH_NAME_REGEX = /^[A-Za-z0-9 ]+$/;
 
     $(document).ready(function () {
         $.get('/api/session', function (sessionResponse) {
@@ -263,11 +266,69 @@
                     ]
                 });
                 loadCompanies();
+                $('#createBranchForm input[name="name"]').on('blur', validateBranchAvailability);
+                $('#createBranchForm select[name="parentCompanyId"]').on('change', validateBranchAvailability);
             } else {
                 window.location.href = '/login';
             }
         });
     });
+
+    function showToast(message, type = 'danger') {
+        const classes = {
+            success: 'bg-success text-white',
+            warning: 'bg-warning text-dark',
+            danger: 'bg-danger text-white'
+        };
+        const toastClass = classes[type] || classes.danger;
+        const closeClass = type === 'warning' ? 'btn-close' : 'btn-close btn-close-white';
+        const toast = $(`
+            <div class="toast align-items-center ${toastClass} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body"></div>
+                    <button type="button" class="${closeClass} me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `);
+        toast.find('.toast-body').text(message);
+        $('#toastContainer').append(toast);
+        const bsToast = new bootstrap.Toast(toast[0], { delay: 3000 });
+        toast.on('hidden.bs.toast', function () {
+            $(this).remove();
+        });
+        bsToast.show();
+    }
+
+    function hasValidBranchName(name) {
+        return BRANCH_NAME_REGEX.test(name);
+    }
+
+    function fetchBranchExists(parentCompanyId, branchName) {
+        return $.ajax({
+            url: '/api/user-front/branch/exists',
+            method: 'GET',
+            data: {
+                parentCompanyId: parentCompanyId,
+                name: branchName
+            }
+        });
+    }
+
+    function validateBranchAvailability() {
+        const form = $('#createBranchForm');
+        const branchName = (form.find('[name="name"]').val() || '').trim();
+        const parentCompanyId = parseInt(form.find('[name="parentCompanyId"]').val(), 10);
+
+        if (!branchName || !parentCompanyId || !hasValidBranchName(branchName)) {
+            return;
+        }
+
+        fetchBranchExists(parentCompanyId, branchName).done(function (response) {
+            if (response.success && response.data === true) {
+                showToast('Branch already exists.', 'warning');
+            }
+        });
+    }
 
     function loadCompanies() {
         $.get('/api/session', function (sessionResponse) {
@@ -314,25 +375,56 @@
     }
 
     function createBranch() {
-        const formData = new FormData($('#createBranchForm')[0]);
-        const data = Object.fromEntries(formData);
-        if (data.parentCompanyId) {
-            data.parentCompanyId = parseInt(data.parentCompanyId);
+        const form = $('#createBranchForm');
+        const branchName = (form.find('[name="name"]').val() || '').trim();
+        const password = (form.find('[name="password"]').val() || '').trim();
+        const parentCompanyId = parseInt(form.find('[name="parentCompanyId"]').val(), 10);
+
+        if (!branchName) {
+            showToast('Branch name cannot be empty', 'warning');
+            return;
+        }
+        if (!password) {
+            showToast('Password cannot be empty', 'warning');
+            return;
+        }
+        if (!hasValidBranchName(branchName)) {
+            showToast('Branch name must not contain special characters', 'warning');
+            return;
+        }
+        if (!parentCompanyId) {
+            showToast('Please select parent company', 'warning');
+            return;
         }
 
-        $.ajax({
-            url: '/api/user-front/branch/create',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(data),
-            success: function () {
-                $('#createBranchModal').modal('hide');
-                table.ajax.reload();
-                alert('Branch created successfully!');
-            },
-            error: function () {
-                alert('Error creating branch');
+        const formData = new FormData(form[0]);
+        const data = Object.fromEntries(formData);
+        data.name = branchName;
+        data.password = password;
+        data.parentCompanyId = parentCompanyId;
+
+        fetchBranchExists(parentCompanyId, branchName).done(function (existsResponse) {
+            if (existsResponse.success && existsResponse.data === true) {
+                showToast('Branch already exists.', 'warning');
+                return;
             }
+
+            $.ajax({
+                url: '/api/user-front/branch/create',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function () {
+                    $('#createBranchModal').modal('hide');
+                    table.ajax.reload();
+                    showToast('Branch created successfully!', 'success');
+                },
+                error: function (xhr) {
+                    showToast(xhr.responseJSON?.message || 'Error creating branch');
+                }
+            });
+        }).fail(function () {
+            showToast('Unable to validate branch name right now');
         });
     }
 

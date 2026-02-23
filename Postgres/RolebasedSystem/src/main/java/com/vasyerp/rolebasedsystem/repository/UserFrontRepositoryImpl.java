@@ -12,7 +12,6 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -217,4 +216,22 @@ public class UserFrontRepositoryImpl implements UserFrontRepository {
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, id);
         return count != null && count > 0;
     }
+
+    @Override
+    public Boolean existsBranchByParentCompanyIdAndName(Long parentCompanyId, String branchName) {
+        if (parentCompanyId == null || branchName == null || branchName.trim().isEmpty()) {
+            return false;
+        }
+        String sql = """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM user_front
+                    WHERE parent_company_id = ?
+                      AND LOWER(TRIM(name)) = LOWER(TRIM(?))
+                )
+                """;
+        Boolean exists = jdbcTemplate.queryForObject(sql, Boolean.class, parentCompanyId, branchName);
+        return exists != null && exists;
+    }
+
 }

@@ -7,7 +7,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
-import java.util.List;
+import static java.util.List.*;
 
 @Controller
 public class ViewControllerHome {
@@ -37,10 +37,10 @@ public class ViewControllerHome {
             if (userId != null) {
                 model.addAttribute("products", productService.getProductsByCompany(userId, userId));
             } else {
-                model.addAttribute("products", List.of());
+                model.addAttribute("products", of());
             }
         } catch (Exception e) {
-            model.addAttribute("products", List.of());
+            model.addAttribute("products", of());
             model.addAttribute("error", "Error loading products: " + e.getMessage());
         }
         return "products";
@@ -51,7 +51,7 @@ public class ViewControllerHome {
         try {
             model.addAttribute("users", userFrontService.getAllCompanies());
         } catch (Exception e) {
-            model.addAttribute("users", List.of());
+            model.addAttribute("users", of());
             model.addAttribute("error", "Error loading users: " + e.getMessage());
         }
         return "users";
@@ -63,7 +63,7 @@ public class ViewControllerHome {
             model.addAttribute("roles", userFrontService.getAllRoles());
         } catch (Exception e) {
             e.printStackTrace();
-            model.addAttribute("roles", List.of());
+            model.addAttribute("roles", of());
             model.addAttribute("error", "Error loading roles: " + e.getMessage());
         }
         return "roles";
@@ -72,10 +72,10 @@ public class ViewControllerHome {
     @GetMapping("/sales")
     public String sales(Model model) {
         try {
-            model.addAttribute("sales", List.of());
-            model.addAttribute("salesItems", List.of());
+            model.addAttribute("sales", of());
+            model.addAttribute("salesItems", of());
         } catch (Exception e) {
-            model.addAttribute("sales", List.of());
+            model.addAttribute("sales", of());
             model.addAttribute("error", "Error loading sales: " + e.getMessage());
         }
         return "sales";
@@ -84,11 +84,11 @@ public class ViewControllerHome {
     @GetMapping("/purchases")
     public String purchases(Model model) {
         try {
-            model.addAttribute("purchases", List.of());
-            model.addAttribute("purchaseItems", List.of());
-            model.addAttribute("suppliers", List.of());
+            model.addAttribute("purchases", of());
+            model.addAttribute("purchaseItems", of());
+            model.addAttribute("suppliers", of());
         } catch (Exception e) {
-            model.addAttribute("purchases", List.of());
+            model.addAttribute("purchases", of());
             model.addAttribute("error", "Error loading purchases: " + e.getMessage());
         }
         return "purchases";

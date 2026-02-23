@@ -4,7 +4,6 @@ import com.vasyerp.rolebasedsystem.dto.ApiResponse;
 import com.vasyerp.rolebasedsystem.dto.CreatePurchaseRequest;
 import com.vasyerp.rolebasedsystem.dto.PurchaseDTO;
 import com.vasyerp.rolebasedsystem.service.PurchaseService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -12,9 +11,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/purchases")
 public class PurchaseController {
-
-    @Autowired
     private PurchaseService purchaseService;
+
+    public PurchaseController(PurchaseService purchaseService) {
+        this.purchaseService = purchaseService;
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<PurchaseDTO>> createPurchase(@RequestBody CreatePurchaseRequest request) {

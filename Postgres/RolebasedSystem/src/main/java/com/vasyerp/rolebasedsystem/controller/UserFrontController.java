@@ -108,6 +108,19 @@ public class UserFrontController {
         }
     }
 
+    @GetMapping("/branch/exists")
+    public ResponseEntity<ApiResponse<Boolean>> branchExists(
+            @RequestParam Long parentCompanyId,
+            @RequestParam("name") String branchName) {
+        try {
+            boolean exists = userFrontService.branchNameExists(parentCompanyId, branchName);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Branch availability checked", exists));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
     @GetMapping("/branches")
     public ResponseEntity<ApiResponse<List<UserFrontDTO>>> getAllBranches() {
         try {
