@@ -552,12 +552,12 @@
                     danger: 'bg-danger text-white'
                 };
                 const toastClass = classes[type] || classes.danger;
-                const closeClass = type === 'warning' ? 'btn-close' : 'btn-close btn-close-white';
+                const closeStyle = 'border: 0; background: transparent; color: inherit; font-size: 1.25rem; line-height: 1; opacity: 0.9;';
                 const toast = $(`
                     <div class="toast align-items-center ${toastClass} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
                         <div class="d-flex">
                             <div class="toast-body"></div>
-                            <button type="button" class="${closeClass} me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                            <button type="button" class="me-2 m-auto p-0" style="${closeStyle}" data-bs-dismiss="toast" aria-label="Close">&times;</button>
                         </div>
                     </div>
                 `);

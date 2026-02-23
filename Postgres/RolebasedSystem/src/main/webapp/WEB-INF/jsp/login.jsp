@@ -42,12 +42,6 @@
                                     <i class="fas fa-sign-in-alt"></i> Sign In
                                 </button>
                             </form>
-
-                            <div class="text-center">
-                                <small class="text-muted">
-                                    Default: admin/admin (Admin) | user/user (User)
-                                </small>
-                            </div>
                         </div>
                     </div>
                 </div>

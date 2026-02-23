@@ -244,7 +244,11 @@ public class UserFrontServiceImpl implements UserFrontService {
                 .findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
-        return company.getBranches()
+        if (company.getParentCompany() != null) {
+            throw new RuntimeException("Provided user is not a company");
+        }
+
+        return userFrontRepository.findByParentCompany(company)
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -267,7 +271,9 @@ public class UserFrontServiceImpl implements UserFrontService {
             return result;
         }
         List<UserFrontDTO> result = new ArrayList<>();
-        UserFront parentCompany = currentUser.getParentCompany();
+        Long parentCompanyId = currentUser.getParentCompany().getUserFrontId();
+        UserFront parentCompany = userFrontRepository.findById(parentCompanyId)
+                .orElseThrow(() -> new RuntimeException("Parent company not found"));
         result.add(convertToDTO(parentCompany));
         result.addAll(getBranchesByCompany(parentCompany.getUserFrontId()));
         return result;

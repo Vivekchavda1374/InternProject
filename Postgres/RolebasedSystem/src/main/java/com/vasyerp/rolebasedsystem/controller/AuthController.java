@@ -10,12 +10,14 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @Controller
 public class AuthController {
 
     private final UserFrontRepository userFrontRepository;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder(12);
+    private static final Pattern BCRYPT_PATTERN = Pattern.compile("^\\$2[aby]\\$\\d\\d\\$[./A-Za-z0-9]{53}$");
 
     public AuthController(UserFrontRepository userFrontRepository) {
         this.userFrontRepository = userFrontRepository;
@@ -32,7 +34,7 @@ public class AuthController {
             @RequestParam String password,
             HttpSession session) {
         UserFront user = userFrontRepository.findByName(name).orElse(null);
-        if (user != null && passwordEncoder.matches(password, user.getPassword())) {
+        if (user != null && isValidPassword(password, user)) {
             session.setAttribute("userId", user.getUserFrontId());
             session.setAttribute("name", user.getName());
             session.setAttribute("isAdmin", user.getName().equals("admin"));
@@ -40,6 +42,23 @@ public class AuthController {
             return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", null));
         }
         return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Invalid credentials", null));
+    }
+
+    private boolean isValidPassword(String rawPassword, UserFront user) {
+        String storedPassword = user.getPassword();
+        if (storedPassword == null || storedPassword.isBlank()) {
+            return false;
+        }
+
+        if (BCRYPT_PATTERN.matcher(storedPassword).matches()) {
+            return passwordEncoder.matches(rawPassword, storedPassword);
+        }
+        if (storedPassword.equals(rawPassword)) {
+            user.setPassword(passwordEncoder.encode(rawPassword));
+            userFrontRepository.save(user);
+            return true;
+        }
+        return false;
     }
 
     @PostMapping("/api/logout")
