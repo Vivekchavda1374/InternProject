@@ -207,15 +207,6 @@ public class UserFrontServiceImpl implements UserFrontService {
 
         UserFront savedBranch = userFrontRepository.save(branch);
 
-        if (hasAddressInput(request)) {
-            String country = normalizeText(request.getCountry());
-            if (country == null) {
-                throw new RuntimeException("Country is required when address is provided");
-            }
-            countryService.getOrCreateCountry(country);
-            addressRepository.save(buildPrimaryAddress(savedBranch, request, country));
-        }
-
         return convertToDTO(userFrontRepository.findById(savedBranch.getUserFrontId()).get());
     }
 

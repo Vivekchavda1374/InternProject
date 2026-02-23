@@ -215,7 +215,6 @@
             </div>
         </div>
 
-        <!-- Create Branch Modal -->
         <div class="modal fade" id="createBranchModal" tabindex="-1">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -246,7 +245,6 @@
                                     onclick="addAddressField('#branchAddresses')"><i class="fas fa-plus"></i> Add
                                     Address</button></h6>
                             <div id="branchAddresses">
-                                <!-- Initial Address Block -->
                                 <div class="card p-2 mb-2 bg-light address-block">
                                     <h6 class="card-subtitle mb-2 text-muted">Primary Address</h6>
                                     <input type="hidden" name="addressType" value="Primary">
@@ -586,29 +584,24 @@
             }
 
             function loadCountries() {
-                $('#countryFilter').off('change').on('change', function () {
+                const select = $('#countryFilter');
+                select.find('option:not(:first)').remove();
+                $.get('/api/countries', function (response) {
+                    if (!(response && response.success && Array.isArray(response.data))) {
+                        return;
+                    }
+                    const countries = [...new Set(response.data
+                        .map(c => (c.name || '').trim())
+                        .filter(Boolean))]
+                        .sort((a, b) => a.localeCompare(b));
+                    countries.forEach(country => select.append(new Option(country, country)));
+                });
+
+                select.off('change').on('change', function () {
                     if (table) {
                         table.ajax.reload();
                     }
                 });
-            }
-
-            function refreshCountryFilterOptions(rows) {
-                const select = $('#countryFilter');
-                const currentValue = select.val();
-                const countries = [...new Set((rows || [])
-                    .map(r => (r.country || '').trim())
-                    .filter(Boolean))]
-                    .sort((a, b) => a.localeCompare(b));
-
-                select.find('option:not(:first)').remove();
-                countries.forEach(country => select.append(new Option(country, country)));
-
-                if (currentValue && countries.includes(currentValue)) {
-                    select.val(currentValue);
-                } else {
-                    select.val('');
-                }
             }
 
             function loadTransactionData() {
@@ -710,7 +703,6 @@
                             'isAdmin': currentUserIsAdmin
                         },
                         dataSrc: function (json) {
-                            refreshCountryFilterOptions(json || []);
                             return json || [];
                         },
                         error: function () {
@@ -963,7 +955,7 @@
                     return;
                 }
 
-                const mainData = {
+                const creationData = {
                     parentCompanyId: parentCompanyId,
                     name: branchName,
                     password: password,
@@ -972,20 +964,33 @@
                 };
 
                 const addresses = [];
+                let countryMissing = false;
                 form.find('.address-block').each(function () {
                     const block = $(this);
-                    addresses.push({
-                        name: mainData.name,
+                    const address = {
+                        name: creationData.name,
                         addressType: block.find('[name="addressType"]').val() || 'Primary',
-                        addressLine1: block.find('[name="addressLine1"]').val(),
-                        addressLine2: block.find('[name="addressLine2"]').val(),
-                        city: block.find('[name="city"]').val(),
-                        state: block.find('[name="state"]').val(),
-                        country: block.find('[name="country"]').val()
-                    });
+                        addressLine1: (block.find('[name="addressLine1"]').val() || '').trim(),
+                        addressLine2: (block.find('[name="addressLine2"]').val() || '').trim(),
+                        city: (block.find('[name="city"]').val() || '').trim(),
+                        state: (block.find('[name="state"]').val() || '').trim(),
+                        country: (block.find('[name="country"]').val() || '').trim()
+                    };
+                    const hasAddressInput = !!(address.addressLine1 || address.addressLine2 || address.city || address.state || address.country);
+                    if (!hasAddressInput) {
+                        return;
+                    }
+                    if (!address.country) {
+                        countryMissing = true;
+                        return false;
+                    }
+                    addresses.push(address);
                 });
 
-                const creationData = { ...mainData, ...addresses[0] };
+                if (countryMissing) {
+                    showToast('Country is required when adding branch address', 'warning');
+                    return;
+                }
 
                 fetchBranchExists(parentCompanyId, branchName).done(function (existsResponse) {
                     if (existsResponse.success && existsResponse.data === true) {
@@ -1000,8 +1005,8 @@
                         data: JSON.stringify(creationData),
                         success: function (response) {
                             const newId = response.data.userFrontId ?? response.data.id;
-                            if (addresses.length > 1) {
-                                saveAdditionalAddresses(newId, addresses.slice(1), () => {
+                            if (addresses.length > 0) {
+                                saveAdditionalAddresses(newId, addresses, () => {
                                     $('#createBranchModal').modal('hide');
                                     table.ajax.reload();
                                     showToast('Branch and addresses created successfully', 'success');

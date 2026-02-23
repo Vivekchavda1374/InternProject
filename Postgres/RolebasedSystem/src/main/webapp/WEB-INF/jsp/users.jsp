@@ -151,33 +151,6 @@
                         <input type="text" class="form-control" name="phoneNo">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Address Line 1</label>
-                        <input type="text" class="form-control" name="addressLine1">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Address Line 2</label>
-                        <input type="text" class="form-control" name="addressLine2">
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">City</label>
-                            <input type="text" class="form-control" name="city">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">State</label>
-                            <input type="text" class="form-control" name="state">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Country</label>
-                            <select class="form-select" name="country">
-                                <option value="">Select Country</option>
-                                <c:forEach items="${countries}" var="c">
-                                    <option value="${c}">${c}</option>
-                                </c:forEach>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-3">
                         <label class="form-label">Parent Company</label>
                         <select class="form-select" name="parentCompanyId" required>
                             <option value="">Select Company</option>
@@ -397,11 +370,13 @@
             return;
         }
 
-        const formData = new FormData(form[0]);
-        const data = Object.fromEntries(formData);
-        data.name = branchName;
-        data.password = password;
-        data.parentCompanyId = parentCompanyId;
+        const data = {
+            name: branchName,
+            password: password,
+            gstNo: form.find('[name="gstNo"]').val(),
+            phoneNo: form.find('[name="phoneNo"]').val(),
+            parentCompanyId: parentCompanyId
+        };
 
         fetchBranchExists(parentCompanyId, branchName).done(function (existsResponse) {
             if (existsResponse.success && existsResponse.data === true) {

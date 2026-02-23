@@ -150,30 +150,6 @@
                                 <div class="col-md-6 mb-2"><label>Phone</label><input type="text" class="form-control"
                                         name="phoneNo"></div>
                             </div>
-
-                            <hr>
-                            <h6>Addresses <button type="button" class="btn btn-sm btn-outline-primary float-end"
-                                    onclick="addAddressField('#branchAddresses')"><i class="fas fa-plus"></i> Add
-                                    Address</button></h6>
-                            <div id="branchAddresses">
-                                <!-- Initial Address Block -->
-                                <div class="card p-2 mb-2 bg-light address-block">
-                                    <h6 class="card-subtitle mb-2 text-muted">Primary Address</h6>
-                                    <input type="hidden" name="addressType" value="Primary">
-                                    <div class="mb-2"><label>Address Line 1</label><input type="text"
-                                            class="form-control" name="addressLine1"></div>
-                                    <div class="mb-2"><label>Address Line 2</label><input type="text"
-                                            class="form-control" name="addressLine2"></div>
-                                    <div class="row">
-                                        <div class="col-md-4 mb-2"><label>City</label><input type="text"
-                                                class="form-control" name="city"></div>
-                                        <div class="col-md-4 mb-2"><label>State</label><input type="text"
-                                                class="form-control" name="state"></div>
-                                        <div class="col-md-4 mb-2"><label>Country</label><input type="text"
-                                                class="form-control" name="country"></div>
-                                    </div>
-                                </div>
-                            </div>
                         </form>
                     </div>
                     <div class="modal-footer">
@@ -547,7 +523,6 @@
 
             function openCreateBranchModal() {
                 $('#createBranchForm')[0].reset();
-                $('#branchAddresses').find('.address-block:not(:first)').remove(); // Reset addresses
                 $.get('/api/user-front/companies', function (response) {
                     if (response.success) {
                         const select = $('#branchParentCompany');
@@ -590,29 +565,13 @@
                     return;
                 }
 
-                const mainData = {
+                const creationData = {
                     parentCompanyId: parentCompanyId,
                     name: branchName,
                     password: password,
                     gstNo: form.find('[name="gstNo"]').val(),
                     phoneNo: form.find('[name="phoneNo"]').val()
                 };
-
-                const addresses = [];
-                form.find('.address-block').each(function () {
-                    const block = $(this);
-                    addresses.push({
-                        name: mainData.name,
-                        addressType: block.find('[name="addressType"]').val() || 'Primary',
-                        addressLine1: block.find('[name="addressLine1"]').val(),
-                        addressLine2: block.find('[name="addressLine2"]').val(),
-                        city: block.find('[name="city"]').val(),
-                        state: block.find('[name="state"]').val(),
-                        country: block.find('[name="country"]').val()
-                    });
-                });
-
-                const creationData = { ...mainData, ...addresses[0] };
 
                 fetchBranchExists(parentCompanyId, branchName).done(function (existsResponse) {
                     if (existsResponse.success && existsResponse.data === true) {
@@ -625,19 +584,10 @@
                         type: 'POST',
                         contentType: 'application/json',
                         data: JSON.stringify(creationData),
-                        success: function (response) {
-                            const newId = response.data.userFrontId ?? response.data.id;
-                            if (addresses.length > 1) {
-                                saveAdditionalAddresses(newId, addresses.slice(1), () => {
-                                    $('#createBranchModal').modal('hide');
-                                    table.ajax.reload();
-                                    showToast('Branch and addresses created successfully', 'success');
-                                });
-                            } else {
-                                $('#createBranchModal').modal('hide');
-                                table.ajax.reload();
-                                showToast('Branch created successfully', 'success');
-                            }
+                        success: function () {
+                            $('#createBranchModal').modal('hide');
+                            table.ajax.reload();
+                            showToast('Branch created successfully', 'success');
                         },
                         error: function (xhr) {
                             showToast(xhr.responseJSON?.message || 'Error creating branch');
