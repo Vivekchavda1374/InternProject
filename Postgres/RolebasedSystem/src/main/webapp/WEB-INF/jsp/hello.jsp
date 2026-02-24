@@ -610,7 +610,7 @@
                         }
                     },
                     messages: {
-                        parentCompanyId: 'Please select parent company',
+
                         name: {
                             required: 'Branch name cannot be empty'
                         },
