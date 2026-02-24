@@ -498,6 +498,8 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
         <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.21.0/jquery.validate.min.js" integrity="sha512-KFHXdr2oObHKI9w4Hv1XPKc898mE4kgYx58oqsc/JqqdLMDI4YjOLzom+EMlW8HFUd0QfjfAvxSL6sEq/a42fQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.21.0/additional-methods.min.js" integrity="sha512-owaCKNpctt4R4oShUTTraMPFKQWG9UdWTtG6GRzBjFV4VypcFi6+M3yc4Jk85s3ioQmkYWJbUl1b2b2r41RTjA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
         <script>
             let table, salesTable, purchaseTable;
@@ -506,9 +508,11 @@
             let currentUserIsAdmin = false;
             let companies = [], products = [];
             let externalPurchaseMode = false;
-            const namePattern = /^[A-Za-z0-9 ]+_*/;
+            const namePattern = /^[A-Za-z0-9 ]+_*$/;
 
             $(document).ready(function () {
+                setupFormValidation();
+
                 $.get('/api/session', function (response) {
                     if (!response.success) {
                         window.location.href = '/login';
@@ -566,6 +570,76 @@
                     $(this).remove();
                 });
                 bsToast.show();
+            }
+
+            function setupFormValidation() {
+                $.validator.addMethod('validBranchName', function (value, element) {
+                    return this.optional(element) || hasValidBranchName((value || '').trim());
+                }, 'Branch name must not contain special characters');
+
+                $.validator.addMethod('countryRequiredIfAddressPresent', function (value, element) {
+                    const block = $(element).closest('.address-block');
+                    const hasAddressInput = block.find('[name="addressLine1"], [name="addressLine2"], [name="city"], [name="state"], [name="country"]')
+                        .toArray()
+                        .some(input => $.trim($(input).val()).length > 0);
+                    return !hasAddressInput || $.trim(value).length > 0;
+                }, 'Country is required when adding branch address');
+
+                $('#createBranchForm').validate({
+                    errorElement: 'div',
+                    errorClass: 'invalid-feedback',
+                    highlight: function (element) {
+                        $(element).addClass('is-invalid');
+                    },
+                    unhighlight: function (element) {
+                        $(element).removeClass('is-invalid');
+                    },
+                    errorPlacement: function (error, element) {
+                        error.insertAfter(element);
+                    },
+                    rules: {
+                        parentCompanyId: {
+                            required: true
+                        },
+                        name: {
+                            required: true,
+                            validBranchName: true
+                        },
+                        password: {
+                            required: true
+                        }
+                    },
+                    messages: {
+                        parentCompanyId: 'Please select parent company',
+                        name: {
+                            required: 'Branch name cannot be empty'
+                        },
+                        password: 'Password cannot be empty'
+                    }
+                });
+
+                applyBranchCountryValidation($('#createBranchForm'));
+            }
+
+            function applyBranchCountryValidation(scope) {
+                scope.find('[name="country"]').each(function () {
+                    if ($(this).data('countryValidationBound')) {
+                        return;
+                    }
+                    $(this).rules('add', {
+                        countryRequiredIfAddressPresent: true
+                    });
+                    $(this).data('countryValidationBound', true);
+                });
+            }
+
+            function resetFormValidation(formSelector) {
+                const form = $(formSelector);
+                const validator = form.data('validator');
+                if (validator) {
+                    validator.resetForm();
+                }
+                form.find('.is-invalid').removeClass('is-invalid');
             }
 
             function hasValidBranchName(name) {
@@ -900,9 +974,10 @@
             function openCreateBranchModal() {
                 $('#createBranchForm')[0].reset();
                 $('#branchAddresses').find('.address-block:not(:first)').remove();
+                resetFormValidation('#createBranchForm');
+                applyBranchCountryValidation($('#branchAddresses'));
                 const select = $('#branchParentCompany');
-                select.empty().append('<option value="">Select Company</option>');
-                let isCompanyUser = $('#btnNewCompany').css('display') === 'none' && $('#btnNewBranch').css('display') !== 'none';
+                select.prop('disabled', false).removeClass('bg-light');
                 $.get('/api/session', function (response) {
                     const isAdmin = response.data.isAdmin;
                     const isCompany = response.data.isCompany;
@@ -910,9 +985,13 @@
                     const userName = response.data.name;
 
                     if (isCompany && !isAdmin) {
-                        select.append(new Option(userName, userId));
+                        select.empty();
+                        select.append(new Option(userName || 'Current Company', userId, true, true));
+                        select.prop('disabled', true).addClass('bg-light');
                         $('#createBranchModal').modal('show');
+                        return;
                     } else {
+                        select.empty().append('<option value="">Select Company</option>');
                         $.get('/api/user-front/companies', function (compResponse) {
                             if (compResponse.success) {
                                 compResponse.data.filter(c => !c.parentCompanyId).forEach(c => {
@@ -934,26 +1013,13 @@
 
             function saveBranch() {
                 const form = $('#createBranchForm');
+                if (!form.valid()) {
+                    return;
+                }
+
                 const branchName = (form.find('[name="name"]').val() || '').trim();
                 const password = (form.find('[name="password"]').val() || '').trim();
                 const parentCompanyId = parseInt(form.find('[name="parentCompanyId"]').val(), 10);
-
-                if (!branchName) {
-                    showToast('Branch name cannot be empty', 'warning');
-                    return;
-                }
-                if (!password) {
-                    showToast('Password cannot be empty', 'warning');
-                    return;
-                }
-                if (!hasValidBranchName(branchName)) {
-                    showToast('Branch name must not contain special characters', 'warning');
-                    return;
-                }
-                if (!parentCompanyId) {
-                    showToast('Please select parent company', 'warning');
-                    return;
-                }
 
                 const creationData = {
                     parentCompanyId: parentCompanyId,
@@ -964,7 +1030,6 @@
                 };
 
                 const addresses = [];
-                let countryMissing = false;
                 form.find('.address-block').each(function () {
                     const block = $(this);
                     const address = {
@@ -980,21 +1045,17 @@
                     if (!hasAddressInput) {
                         return;
                     }
-                    if (!address.country) {
-                        countryMissing = true;
-                        return false;
-                    }
                     addresses.push(address);
                 });
 
-                if (countryMissing) {
-                    showToast('Country is required when adding branch address', 'warning');
-                    return;
-                }
-
                 fetchBranchExists(parentCompanyId, branchName).done(function (existsResponse) {
                     if (existsResponse.success && existsResponse.data === true) {
-                        showToast('Branch already exists.', 'warning');
+                        const validator = form.data('validator');
+                        if (validator) {
+                            validator.showErrors({
+                                name: 'Branch already exists.'
+                            });
+                        }
                         return;
                     }
 
@@ -1069,6 +1130,9 @@
                         </div>
                     </div>`;
                 container.append(html);
+                if (containerSelector === '#branchAddresses') {
+                    applyBranchCountryValidation(container);
+                }
             }
 
             function openEditCompanyModal(id, name) {

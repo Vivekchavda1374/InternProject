@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class UserFrontServiceImpl implements UserFrontService {
-    private static final Pattern namePattern = Pattern.compile("^[A-Za-z0-9 ]+_*");
+    private static final Pattern namePattern = Pattern.compile("^[A-Za-z0-9 ]+_*$");
 
     private final UserFrontRepository userFrontRepository;
     private final UserRoleRepository userRoleRepository;
