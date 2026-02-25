@@ -20,10 +20,15 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -31,24 +36,28 @@ import java.util.stream.Collectors;
 @Transactional
 public class UserFrontServiceImpl implements UserFrontService {
     private static final Pattern namePattern = Pattern.compile("^[A-Za-z0-9 ]+_*$");
+    private static final Duration BRANCH_CREATE_LOCK_TTL = Duration.ofSeconds(30);
 
     private final UserFrontRepository userFrontRepository;
     private final UserRoleRepository userRoleRepository;
     private final UserRoleNewRepository userRoleNewRepository;
     private final UserFrontAddressRepository addressRepository;
     private final CountryService countryService;
+    private final RedisLockService redisLockService;
     private final BCryptPasswordEncoder passwordEncoder;
 
     public UserFrontServiceImpl(UserFrontRepository userFrontRepository,
             UserRoleRepository userRoleRepository,
             UserRoleNewRepository userRoleNewRepository,
             UserFrontAddressRepository addressRepository,
-            CountryService countryService) {
+            CountryService countryService,
+            RedisLockService redisLockService) {
         this.userFrontRepository = userFrontRepository;
         this.userRoleRepository = userRoleRepository;
         this.userRoleNewRepository = userRoleNewRepository;
         this.addressRepository = addressRepository;
         this.countryService = countryService;
+        this.redisLockService = redisLockService;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
@@ -183,31 +192,56 @@ public class UserFrontServiceImpl implements UserFrontService {
         if (request.getParentCompanyId() == null) {
             throw new RuntimeException("Parent company ID is required for branch");
         }
-        UserFront parentCompany = userFrontRepository
-                .findById(request.getParentCompanyId())
-                .orElseThrow(() -> new RuntimeException("Parent company not found"));
+        String lockKey = buildBranchCreateLockKey(request.getParentCompanyId(), normalizedBranchName);
+        String lockToken = UUID.randomUUID().toString();
 
-        if (parentCompany.getParentCompany() != null) {
-            throw new RuntimeException("Cannot create branch under a branch. Parent must be a company");
+        boolean lockAcquired = redisLockService.tryLock(lockKey, lockToken, BRANCH_CREATE_LOCK_TTL);
+
+        if (!lockAcquired) {
+            throw new RuntimeException("Branch creation is already in progress for this company and name");
         }
+        boolean unlockScheduledAfterTransaction = false;
+        try {
+            UserFront parentCompany = userFrontRepository
+                    .findById(request.getParentCompanyId())
+                    .orElseThrow(() -> new RuntimeException("Parent company not found"));
 
-        if (userFrontRepository.existsBranchByParentCompanyIdAndName(
-                request.getParentCompanyId(), normalizedBranchName)) {
-            throw new RuntimeException("Branch already exists.");
+            if (parentCompany.getParentCompany() != null) {
+                throw new RuntimeException("Cannot create branch under a branch. Parent must be a company");
+            }
+
+            if (userFrontRepository.existsBranchByParentCompanyIdAndName(
+                    request.getParentCompanyId(), normalizedBranchName)) {
+                throw new RuntimeException("Branch already exists.");
+            }
+
+
+            UserFront branch = new UserFront();
+            branch.setName(normalizedBranchName);
+            branch.setPassword(passwordEncoder.encode(request.getPassword()));
+            branch.setParentCompany(parentCompany);
+            branch.setGstNo(request.getGstNo());
+            branch.setPhoneNo(request.getPhoneNo());
+            branch.setAddresses(new ArrayList<>());
+
+            UserFront savedBranch = userFrontRepository.save(branch);
+
+            if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        redisLockService.unlock(lockKey, lockToken);
+                    }
+                });
+                unlockScheduledAfterTransaction = true;
+            }
+
+            return convertToDTO(userFrontRepository.findById(savedBranch.getUserFrontId()).get());
+        } finally {
+            if (!unlockScheduledAfterTransaction) {
+                redisLockService.unlock(lockKey, lockToken);
+            }
         }
-
-
-        UserFront branch = new UserFront();
-        branch.setName(normalizedBranchName);
-        branch.setPassword(passwordEncoder.encode(request.getPassword()));
-        branch.setParentCompany(parentCompany);
-        branch.setGstNo(request.getGstNo());
-        branch.setPhoneNo(request.getPhoneNo());
-        branch.setAddresses(new ArrayList<>());
-
-        UserFront savedBranch = userFrontRepository.save(branch);
-
-        return convertToDTO(userFrontRepository.findById(savedBranch.getUserFrontId()).get());
     }
 
     @Override
@@ -409,7 +443,10 @@ public class UserFrontServiceImpl implements UserFrontService {
     @Override
     @Cacheable("allRoles")
     public List<UserRole> getAllRoles() {
-        return userRoleRepository.findAll();
+        return userRoleRepository.findAll()
+                .stream()
+                .map(role -> new UserRole(role.getRoleId(), role.getRoleName(), null))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -469,6 +506,10 @@ public class UserFrontServiceImpl implements UserFrontService {
 
     private String normalizeBranchName(String branchName) {
         return branchName == null ? "" : branchName.trim();
+    }
+
+    private String buildBranchCreateLockKey(Long parentCompanyId, String normalizedBranchName) {
+        return "lock:branch:create:" + parentCompanyId + ":" + normalizedBranchName.toLowerCase(Locale.ROOT);
     }
 
     private void validateBranchName(String branchName) {
