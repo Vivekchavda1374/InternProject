@@ -17,6 +17,8 @@
                     <h4><i class="fas fa-table"></i> Project Data</h4>
                     <div class="float-end">
                         <span id="userInfo" class="me-3"></span>
+                        <button onclick="downloadCompleteExport()" class="btn btn-warning btn-sm me-1"><i
+                                class="fas fa-file-excel"></i> Export Excel</button>
                         <button id="btnNewCompany" onclick="openCreateCompanyModal()"
                             class="btn btn-primary btn-sm me-1" style="display:none;"><i class="fas fa-plus"></i> New
                             Company</button>
@@ -1611,6 +1613,51 @@
                         alert('Error: ' + (xhr.responseJSON?.message || 'Unknown error'));
                     }
                 });
+            }
+
+            function downloadCompleteExport() {
+                const country = $('#countryFilter').val();
+                let url = '/api/complete/export';
+                if (country) {
+                    url += '?country=' + encodeURIComponent(country);
+                }
+
+                fetch(url, { method: 'GET', credentials: 'same-origin' })
+                    .then(async (response) => {
+                        const contentType = response.headers.get('content-type') || '';
+                        if (!response.ok || contentType.includes('application/json')) {
+                            let message = 'Export failed';
+                            try {
+                                const errorBody = await response.json();
+                                if (errorBody && errorBody.message) {
+                                    message = errorBody.message;
+                                }
+                            } catch (e) {
+
+                            }
+                            throw new Error(message);
+                        }
+
+                        const disposition = response.headers.get('content-disposition') || '';
+                        const fileNameMatch = disposition.match(/filename=\"?([^\";]+)\"?/i);
+                        const fileName = fileNameMatch ? fileNameMatch[1] : 'complete-data.xlsx';
+                        const exportScope = response.headers.get('x-export-scope') || 'UNKNOWN';
+                        const exportUser = response.headers.get('x-export-user') || 'UNKNOWN';
+
+                        const blob = await response.blob();
+                        const downloadUrl = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = downloadUrl;
+                        link.download = fileName;
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                        window.URL.revokeObjectURL(downloadUrl);
+                        showToast(`Excel exported (${exportScope}) for ${exportUser}: ${fileName}`, 'success');
+                    })
+                    .catch((error) => {
+                        showToast(error.message || 'Export failed');
+                    });
             }
 
             function logout() {

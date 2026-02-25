@@ -17,9 +17,11 @@
                     <h4><i class="fas fa-table"></i> Project Data</h4>
                     <div class="float-end">
                         <span id="userInfo" class="me-3"></span>
-                        <button onclick="openCreateCompanyModal()" class="btn btn-primary btn-sm me-1"><i
+                        <button onclick="downloadCompleteExport()" class="btn btn-warning btn-sm me-1"><i
+                                class="fas fa-file-excel"></i> Export Excel</button>
+                        <button onclick="openCreateCompanyModal()" class="btn btn-primary btn-sm me-1 admin-only"><i
                                 class="fas fa-plus"></i> New Company</button>
-                        <button onclick="openCreateBranchModal()" class="btn btn-success btn-sm me-1"><i
+                        <button onclick="openCreateBranchModal()" class="btn btn-success btn-sm me-1 admin-only"><i
                                 class="fas fa-code-branch"></i> New Branch</button>
                         <a href="/" class="btn btn-light btn-sm"><i class="fas fa-home"></i> Home</a>
                         <button onclick="logout()" class="btn btn-danger btn-sm"><i class="fas fa-sign-out-alt"></i>
@@ -322,6 +324,7 @@
             let table;
             let userRole = null;
             let userId = null;
+            let isAdminUser = false;
             const BRANCH_NAME_REGEX = /^[A-Za-z0-9 ]+$/;
 
             $(document).ready(function () {
@@ -332,14 +335,17 @@
                     }
 
                     userId = response.data.userId;
-                    const isAdmin = response.data.isAdmin;
-                    const userName = response.data.userName || 'User';
+                    isAdminUser = response.data.isAdmin === true;
+                    const isCompanyUser = response.data.isCompany === true;
+                    const userName = response.data.name || 'User';
+                    const userType = response.data.userType
+                        ? response.data.userType.replace('_', ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+                        : (isAdminUser ? 'Admin' : (isCompanyUser ? 'Company' : 'Branch'));
 
-                    $('#userInfo').html('<strong>' + userName + '</strong> (' + (isAdmin ? 'Admin' : 'User') + ')');
+                    $('#userInfo').html('<strong>' + userName + '</strong> (' + userType + ')');
 
-                    if (!isAdmin) {
-                        $('#accessDenied').show();
-                        return;
+                    if (!isAdminUser) {
+                        $('.admin-only').hide();
                     }
 
                     loadTable();
@@ -444,6 +450,9 @@
                         {
                             data: null,
                             render: function (data, type, row) {
+                                if (!isAdminUser) {
+                                    return '';
+                                }
                                 let buttons = '';
                                 if (row.type === 'Product') {
                                     buttons += '<button class="btn btn-warning btn-sm me-1" onclick="openEditModal(this)" title="Edit Product"><i class="fas fa-edit"></i> Prod</button>';
@@ -853,6 +862,51 @@
                 $.post('/api/logout', function () {
                     window.location.href = '/login';
                 });
+            }
+
+            function downloadCompleteExport() {
+                const country = $('#countryFilter').val();
+                let url = '/api/complete/export';
+                if (country) {
+                    url += '?country=' + encodeURIComponent(country);
+                }
+
+                fetch(url, { method: 'GET', credentials: 'same-origin' })
+                    .then(async (response) => {
+                        const contentType = response.headers.get('content-type') || '';
+                        if (!response.ok || contentType.includes('application/json')) {
+                            let message = 'Export failed';
+                            try {
+                                const errorBody = await response.json();
+                                if (errorBody && errorBody.message) {
+                                    message = errorBody.message;
+                                }
+                            } catch (e) {
+                                
+                            }
+                            throw new Error(message);
+                        }
+
+                        const disposition = response.headers.get('content-disposition') || '';
+                        const fileNameMatch = disposition.match(/filename=\"?([^\";]+)\"?/i);
+                        const fileName = fileNameMatch ? fileNameMatch[1] : 'complete-data.xlsx';
+                        const exportScope = response.headers.get('x-export-scope') || 'UNKNOWN';
+                        const exportUser = response.headers.get('x-export-user') || 'UNKNOWN';
+
+                        const blob = await response.blob();
+                        const downloadUrl = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = downloadUrl;
+                        link.download = fileName;
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                        window.URL.revokeObjectURL(downloadUrl);
+                        showToast(`Excel exported (${exportScope}) for ${exportUser}: ${fileName}`, 'success');
+                    })
+                    .catch((error) => {
+                        showToast(error.message || 'Export failed');
+                    });
             }
         </script>
     </body>
