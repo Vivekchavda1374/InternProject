@@ -36,6 +36,8 @@
                         <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab"
                                 data-bs-target="#data-tab">Data</button></li>
                         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab"
+                                data-bs-target="#all-products-tab">All Products</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab"
                                 data-bs-target="#transactions-tab">Transactions</button></li>
                     </ul>
                     <div class="tab-content">
@@ -68,6 +70,25 @@
                                         <th>State</th>
                                         <th>Country</th>
 <%--                                        <th>Actions</th>--%>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="tab-pane fade" id="all-products-tab">
+                            <table id="allProductsTable" class="table table-striped table-bordered table-hover table-sm">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Image</th>
+                                        <th>Name</th>
+                                        <th>Item Code</th>
+                                        <th>Company/Branch ID</th>
+                                        <th>MRP</th>
+                                        <th>Selling Price</th>
+                                        <th>Stock</th>
+                                        <th>Description</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -419,6 +440,63 @@
             </div>
         </div>
 
+        <div class="modal fade" id="viewProductModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Product Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-center mb-3">
+                            <img id="viewProductImage" alt="Product Image"
+                                style="display:none; max-height:140px; max-width:180px; border-radius:8px; border:1px solid #ddd; padding:2px;">
+                            <div id="viewProductNoImage" class="text-muted small">No image uploaded</div>
+                        </div>
+                        <table class="table table-sm table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th style="width: 35%;">Product ID</th>
+                                    <td id="viewProductId"></td>
+                                </tr>
+                                <tr>
+                                    <th>Name</th>
+                                    <td id="viewProductName"></td>
+                                </tr>
+                                <tr>
+                                    <th>Item Code</th>
+                                    <td id="viewProductItemCode"></td>
+                                </tr>
+                                <tr>
+                                    <th>Company/Branch ID</th>
+                                    <td id="viewProductCompanyId"></td>
+                                </tr>
+                                <tr>
+                                    <th>MRP</th>
+                                    <td id="viewProductMrp"></td>
+                                </tr>
+                                <tr>
+                                    <th>Selling Price</th>
+                                    <td id="viewProductSellingPrice"></td>
+                                </tr>
+                                <tr>
+                                    <th>Stock</th>
+                                    <td id="viewProductStockQuantity"></td>
+                                </tr>
+                                <tr>
+                                    <th>Description</th>
+                                    <td id="viewProductDescription"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="modal fade" id="salesModal" tabindex="-1">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -519,10 +597,11 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.21.0/additional-methods.min.js" integrity="sha512-owaCKNpctt4R4oShUTTraMPFKQWG9UdWTtG6GRzBjFV4VypcFi6+M3yc4Jk85s3ioQmkYWJbUl1b2b2r41RTjA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
         <script>
-            let table, salesTable, purchaseTable;
+            let table, salesTable, purchaseTable, allProductsTable;
             let currentUserId = null;
             let currentUserName = null;
             let currentUserIsAdmin = false;
+            let currentUserIsCompany = false;
             let currentEditingProductId = null;
             let companies = [], products = [];
             let externalPurchaseMode = false;
@@ -542,6 +621,7 @@
                     const isAdmin = response.data.isAdmin;
                     currentUserIsAdmin = isAdmin;
                     const isCompany = response.data.isCompany;
+                    currentUserIsCompany = isCompany;
                     const userNameDisplay = response.data.name || 'User';
 
                     $('#userInfo').html('<strong>' + userNameDisplay + '</strong> (' + (isAdmin ? 'Admin' : (isCompany ? 'Company' : 'Branch')) + ')');
@@ -558,6 +638,7 @@
                     }
 
                     loadTable();
+                    loadAllProductsTable();
                     loadCountries();
                     setTimeout(loadTransactionData, 500);
                 }).fail(function () {
@@ -567,6 +648,14 @@
                 $('#editProductModal').on('hidden.bs.modal', function () {
                     currentEditingProductId = null;
                     $('#editProductImage').val('');
+                });
+
+                $('button[data-bs-target="#all-products-tab"]').on('shown.bs.tab', function () {
+                    if (!allProductsTable) {
+                        loadAllProductsTable();
+                    } else {
+                        allProductsTable.columns.adjust();
+                    }
                 });
             });
 
@@ -626,6 +715,194 @@
                     processData: false,
                     contentType: false
                 });
+            }
+
+            function renderAllProductsImage(productId, productName) {
+                if (!productId) {
+                    return '<span class="text-muted small">No image</span>';
+                }
+                const safeName = productName || 'Product';
+                return '<img src="' + productImageUrl(productId) + '"' +
+                    ' alt="' + safeName + '"' +
+                    ' title="' + safeName + '"' +
+                    ' style="max-height:48px; max-width:64px; border-radius:6px; border:1px solid #ddd; padding:2px;"' +
+                    ' onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'inline\';">' +
+                    '<span class="text-muted small" style="display:none;">No image</span>';
+            }
+
+            function formatInr(value) {
+                const amount = parseFloat(value);
+                if (!Number.isFinite(amount)) {
+                    return 'INR 0.00';
+                }
+                return 'INR ' + amount.toFixed(2);
+            }
+
+            function renderAllProductsActions(row) {
+                const productId = row.productId ?? row.id;
+                if (!productId) {
+                    return '';
+                }
+
+                let actions = '';
+                actions += '<button class="btn btn-sm btn-outline-primary me-1" title="View Product" onclick="viewProductById(' + productId + ')"><i class="fas fa-eye"></i></button>';
+                actions += '<button class="btn btn-sm btn-warning me-1" title="Edit Product" onclick="openEditProductById(' + productId + ')"><i class="fas fa-edit"></i></button>';
+                if (currentUserIsAdmin || currentUserIsCompany) {
+                    actions += '<button class="btn btn-sm btn-danger" title="Delete Product" onclick="openDeleteModal(' + productId + ', \'Product\')"><i class="fas fa-trash"></i></button>';
+                }
+                return actions;
+            }
+
+            function getProductById(productId, onSuccess) {
+                $.ajax({
+                    url: '/api/products/' + productId,
+                    type: 'GET',
+                    headers: { 'userId': currentUserId },
+                    success: function (response) {
+                        const product = response?.data;
+                        if (!product) {
+                            showToast('Product not found');
+                            return;
+                        }
+                        onSuccess(product);
+                    },
+                    error: function (xhr) {
+                        showToast('Error loading product: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                    }
+                });
+            }
+
+            function fillEditProductForm(product) {
+                const productId = product.productId ?? product.id;
+                $('#editProductId').val(productId);
+                $('#editProductName').val(product.productName || '');
+                $('#editItemCode').val(product.itemCode || '');
+                $('#editMrp').val(product.mrp ?? '');
+                $('#editSellingPrice').val(product.sellingPrice ?? '');
+                $('#editStockQuantity').val(product.stockQuantity ?? '');
+                $('#editDescription').val(product.description || '');
+                $('#editProductImage').val('');
+                currentEditingProductId = productId;
+                refreshEditProductImagePreview(productId);
+            }
+
+            function openEditProductById(productId) {
+                getProductById(productId, function (product) {
+                    fillEditProductForm(product);
+                    $('#editProductModal').modal('show');
+                });
+            }
+
+            function viewProductById(productId) {
+                getProductById(productId, function (product) {
+                    const resolvedId = product.productId ?? product.id;
+                    $('#viewProductId').text(resolvedId ?? '-');
+                    $('#viewProductName').text(product.productName || '-');
+                    $('#viewProductItemCode').text(product.itemCode || '-');
+                    $('#viewProductCompanyId').text(product.companyId ?? '-');
+                    $('#viewProductMrp').text(formatInr(product.mrp));
+                    $('#viewProductSellingPrice').text(formatInr(product.sellingPrice));
+                    const qty = parseFloat(product.stockQuantity);
+                    $('#viewProductStockQuantity').text(Number.isFinite(qty) ? qty.toFixed(2) : '0.00');
+                    $('#viewProductDescription').text(product.description || '-');
+
+                    const image = $('#viewProductImage');
+                    const noImage = $('#viewProductNoImage');
+                    image.hide().off('load').off('error');
+                    image.on('load', function () {
+                        image.show();
+                        noImage.hide();
+                    });
+                    image.on('error', function () {
+                        image.hide();
+                        noImage.show();
+                    });
+                    image.attr('src', productImageUrl(resolvedId));
+
+                    $('#viewProductModal').modal('show');
+                });
+            }
+
+            function loadAllProductsTable() {
+                if (allProductsTable) {
+                    allProductsTable.ajax.reload(null, false);
+                    return;
+                }
+
+                allProductsTable = $('#allProductsTable').DataTable({
+                    ajax: {
+                        url: '/api/products',
+                        type: 'GET',
+                        dataSrc: function (response) {
+                            return response?.data || [];
+                        },
+                        error: function () {
+                            showToast('Failed to load all products');
+                        }
+                    },
+                    columns: [
+                        {
+                            data: null,
+                            defaultContent: '',
+                            render: function (data, type, row) {
+                                return row.productId ?? row.id ?? '';
+                            }
+                        },
+                        {
+                            data: null,
+                            defaultContent: '',
+                            render: function (data, type, row) {
+                                const id = row.productId ?? row.id;
+                                return renderAllProductsImage(id, row.productName);
+                            }
+                        },
+                        { data: 'productName', defaultContent: '' },
+                        { data: 'itemCode', defaultContent: '' },
+                        { data: 'companyId', defaultContent: '' },
+                        {
+                            data: 'mrp',
+                            defaultContent: '0',
+                            render: function (data) {
+                                return formatInr(data);
+                            }
+                        },
+                        {
+                            data: 'sellingPrice',
+                            defaultContent: '0',
+                            render: function (data) {
+                                return formatInr(data);
+                            }
+                        },
+                        {
+                            data: 'stockQuantity',
+                            defaultContent: '0',
+                            render: function (data) {
+                                const qty = parseFloat(data);
+                                return Number.isFinite(qty) ? qty.toFixed(2) : '0.00';
+                            }
+                        },
+                        { data: 'description', defaultContent: '' },
+                        {
+                            data: null,
+                            defaultContent: '',
+                            orderable: false,
+                            searchable: false,
+                            render: function (data, type, row) {
+                                return renderAllProductsActions(row);
+                            }
+                        }
+                    ],
+                    pageLength: 25,
+                    order: [[0, 'desc']],
+                    searching: true,
+                    scrollX: true
+                });
+            }
+
+            function reloadAllProductsTable() {
+                if (allProductsTable) {
+                    allProductsTable.ajax.reload(null, false);
+                }
             }
 
             function setupFormValidation() {
@@ -966,17 +1243,20 @@
                                 .done(function () {
                                     $('#createProductModal').modal('hide');
                                     table.ajax.reload();
+                                    reloadAllProductsTable();
                                     showToast('Product and image created successfully', 'success');
                                 })
                                 .fail(function (xhr) {
                                     $('#createProductModal').modal('hide');
                                     table.ajax.reload();
+                                    reloadAllProductsTable();
                                     showToast('Product created but image upload failed: ' + (xhr.responseJSON?.message || 'Unknown error'));
                                 });
                             return;
                         }
                         $('#createProductModal').modal('hide');
                         table.ajax.reload();
+                        reloadAllProductsTable();
                         showToast('Product created successfully', 'success');
                     },
                     error: function (xhr) {
@@ -1223,16 +1503,15 @@
                     $('#details-tab').tab('show');
                     $('#editUserFrontModal').modal('show');
                 } else if (row.type === 'Product') {
-                    $('#editProductId').val(row.id);
-                    $('#editProductName').val(row.productName);
-                    $('#editItemCode').val(row.itemCode);
-                    $('#editMrp').val(row.mrp);
-                    $('#editSellingPrice').val(row.sellingPrice);
-                    $('#editStockQuantity').val(row.stockQuantity);
-                    $('#editDescription').val(row.description);
-                    $('#editProductImage').val('');
-                    currentEditingProductId = row.id;
-                    refreshEditProductImagePreview(row.id);
+                    fillEditProductForm({
+                        productId: row.id,
+                        productName: row.productName,
+                        itemCode: row.itemCode,
+                        mrp: row.mrp,
+                        sellingPrice: row.sellingPrice,
+                        stockQuantity: row.stockQuantity,
+                        description: row.description
+                    });
                     $('#editProductModal').modal('show');
                 }
             }
@@ -1352,17 +1631,20 @@
                                 .done(function () {
                                     $('#editProductModal').modal('hide');
                                     table.ajax.reload();
+                                    reloadAllProductsTable();
                                     showToast('Product and image updated successfully', 'success');
                                 })
                                 .fail(function (xhr) {
                                     $('#editProductModal').modal('hide');
                                     table.ajax.reload();
+                                    reloadAllProductsTable();
                                     showToast('Product updated but image upload failed: ' + (xhr.responseJSON?.message || 'Unknown error'));
                                 });
                             return;
                         }
                         $('#editProductModal').modal('hide');
                         table.ajax.reload();
+                        reloadAllProductsTable();
                         showToast('Product updated successfully', 'success');
                     },
                     error: function (xhr) {
@@ -1384,6 +1666,7 @@
                         $('#editProductImage').val('');
                         refreshEditProductImagePreview(currentEditingProductId);
                         table.ajax.reload(null, false);
+                        reloadAllProductsTable();
                         showToast('Product image removed', 'success');
                     },
                     error: function (xhr) {
@@ -1418,6 +1701,9 @@
                     success: function () {
                         $('#deleteConfirmModal').modal('hide');
                         table.ajax.reload();
+                        if (type === 'Product') {
+                            reloadAllProductsTable();
+                        }
                         alert('Deleted successfully');
                     },
                     error: function (xhr) {

@@ -9,9 +9,9 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -42,7 +42,7 @@ public class ProductRepositoryImpl implements ProductRepository {
             String sql = "INSERT INTO product (product_name, company_id, item_code, mrp, selling_price, description, stock_quantity) VALUES (?, ?, ?, ?, ?, ?, ?)";
             KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbcTemplate.update(connection -> {
-                PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                PreparedStatement ps = connection.prepareStatement(sql, new String[]{"product_id"});
                 ps.setString(1, product.getProductName());
                 ps.setLong(2, product.getCompanyId());
                 ps.setString(3, product.getItemCode());
@@ -52,9 +52,25 @@ public class ProductRepositoryImpl implements ProductRepository {
                 ps.setObject(7, product.getStockQuantity());
                 return ps;
             }, keyHolder);
-            Number key = keyHolder.getKey();
-            if (key != null) {
-                product.setProductId(key.longValue());
+
+            Map<String, Object> generatedKeys = keyHolder.getKeys();
+            if (generatedKeys != null) {
+                Object idValue = generatedKeys.get("product_id");
+                if (idValue == null) {
+                    idValue = generatedKeys.get("PRODUCT_ID");
+                }
+                if (idValue == null && generatedKeys.size() == 1) {
+                    idValue = generatedKeys.values().iterator().next();
+                }
+                if (idValue instanceof Number number) {
+                    product.setProductId(number.longValue());
+                } else if (idValue != null) {
+                    product.setProductId(Long.parseLong(idValue.toString()));
+                }
+            }
+
+            if (product.getProductId() == null) {
+                throw new IllegalStateException("Failed to retrieve generated product_id");
             }
         } else {
             String sql = "UPDATE product SET product_name = ?, company_id = ?, item_code = ?, mrp = ?, selling_price = ?, description = ?, stock_quantity = ? WHERE product_id = ?";
