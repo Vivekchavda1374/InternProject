@@ -57,6 +57,7 @@
                                 <th>Country</th>
                                 <th>Role</th>
                                 <th>Product</th>
+                                <th>Image</th>
                                 <th>Item Code</th>
                                 <th>MRP</th>
                                 <th>Selling Price</th>
@@ -284,9 +285,19 @@
                                     class="form-control" name="stockQuantity" id="editStockQuantity"></div>
                             <div class="mb-2"><label>Description</label><textarea class="form-control"
                                     name="description" id="editDescription"></textarea></div>
+                            <div class="mb-2">
+                                <label>Product Image</label>
+                                <input type="file" class="form-control" id="editProductImage" accept="image/*">
+                                <div class="mt-2">
+                                    <img id="editProductImagePreview" alt="Product Image Preview"
+                                        style="display:none; max-height:120px; border-radius:6px; border:1px solid #ddd; padding:2px;">
+                                    <div id="editProductImageEmpty" class="text-muted small">No image uploaded</div>
+                                </div>
+                            </div>
                         </form>
                     </div>
                     <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-danger me-auto" onclick="removeProductImage()">Remove Image</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         <button type="button" class="btn btn-primary" onclick="updateProduct()">Save Changes</button>
                     </div>
@@ -325,6 +336,7 @@
             let userRole = null;
             let userId = null;
             let isAdminUser = false;
+            let currentEditingProductId = null;
             const BRANCH_NAME_REGEX = /^[A-Za-z0-9 ]+$/;
 
             $(document).ready(function () {
@@ -352,6 +364,11 @@
                 }).fail(function () {
                     window.location.href = '/login';
                 });
+
+                $('#editProductModal').on('hidden.bs.modal', function () {
+                    currentEditingProductId = null;
+                    $('#editProductImage').val('');
+                });
             });
 
             function showToast(message, type = 'danger') {
@@ -377,6 +394,51 @@
                     $(this).remove();
                 });
                 bsToast.show();
+            }
+
+            function productImageUrl(productId) {
+                return '/api/products/' + productId + '/image?ts=' + Date.now();
+            }
+
+            function renderProductImageCell(productId, productName) {
+                const name = productName || 'Product';
+                return `
+                    <img src="${productImageUrl(productId)}"
+                         alt="${name}"
+                         title="${name}"
+                         style="max-height:48px; max-width:64px; border-radius:6px; border:1px solid #ddd; padding:2px;"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                    <span class="text-muted small" style="display:none;">No image</span>
+                `;
+            }
+
+            function refreshEditProductImagePreview(productId) {
+                const preview = $('#editProductImagePreview');
+                const empty = $('#editProductImageEmpty');
+
+                preview.hide().off('load').off('error');
+                preview.on('load', function () {
+                    preview.show();
+                    empty.hide();
+                });
+                preview.on('error', function () {
+                    preview.hide();
+                    empty.show();
+                });
+                preview.attr('src', productImageUrl(productId));
+            }
+
+            function uploadProductImage(productId, file) {
+                const formData = new FormData();
+                formData.append('file', file);
+                return $.ajax({
+                    url: '/api/products/' + productId + '/image',
+                    type: 'POST',
+                    headers: { 'userId': userId },
+                    data: formData,
+                    processData: false,
+                    contentType: false
+                });
             }
 
             function hasValidBranchName(name) {
@@ -442,6 +504,16 @@
                         { data: 'country', defaultContent: '' },
                         { data: 'roleName', defaultContent: '' },
                         { data: 'productName', defaultContent: '' },
+                        {
+                            data: null,
+                            defaultContent: '',
+                            render: function (data, type, row) {
+                                if (row.type !== 'Product') {
+                                    return '';
+                                }
+                                return renderProductImageCell(row.id, row.productName);
+                            }
+                        },
                         { data: 'itemCode', defaultContent: '' },
                         { data: 'mrp', defaultContent: '', render: (data) => data ? '₹' + data : '' },
                         { data: 'sellingPrice', defaultContent: '', render: (data) => data ? '₹' + data : '' },
@@ -677,6 +749,9 @@
                     $('#editSellingPrice').val(row.sellingPrice);
                     $('#editStockQuantity').val(row.stockQuantity);
                     $('#editDescription').val(row.description);
+                    $('#editProductImage').val('');
+                    currentEditingProductId = row.id;
+                    refreshEditProductImagePreview(row.id);
                     $('#editProductModal').modal('show');
                 }
             }
@@ -782,6 +857,7 @@
                 data.mrp = parseFloat(data.mrp);
                 data.sellingPrice = parseFloat(data.sellingPrice);
                 data.stockQuantity = parseFloat(data.stockQuantity);
+                const imageFile = $('#editProductImage')[0]?.files?.[0] || null;
 
                 $.ajax({
                     url: '/api/products/' + id,
@@ -790,12 +866,47 @@
                     contentType: 'application/json',
                     data: JSON.stringify(data),
                     success: function () {
+                        if (imageFile) {
+                            uploadProductImage(id, imageFile)
+                                .done(function () {
+                                    $('#editProductModal').modal('hide');
+                                    table.ajax.reload();
+                                    showToast('Product and image updated successfully', 'success');
+                                })
+                                .fail(function (xhr) {
+                                    $('#editProductModal').modal('hide');
+                                    table.ajax.reload();
+                                    showToast('Product updated but image upload failed: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                                });
+                            return;
+                        }
                         $('#editProductModal').modal('hide');
                         table.ajax.reload();
-                        alert('Product updated successfully');
+                        showToast('Product updated successfully', 'success');
                     },
                     error: function (xhr) {
                         alert('Error updating product: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                    }
+                });
+            }
+
+            function removeProductImage() {
+                if (!currentEditingProductId) {
+                    return;
+                }
+
+                $.ajax({
+                    url: '/api/products/' + currentEditingProductId + '/image',
+                    type: 'DELETE',
+                    headers: { 'userId': userId },
+                    success: function () {
+                        $('#editProductImage').val('');
+                        refreshEditProductImagePreview(currentEditingProductId);
+                        table.ajax.reload(null, false);
+                        showToast('Product image removed', 'success');
+                    },
+                    error: function (xhr) {
+                        showToast('Error removing image: ' + (xhr.responseJSON?.message || 'Unknown error'));
                     }
                 });
             }

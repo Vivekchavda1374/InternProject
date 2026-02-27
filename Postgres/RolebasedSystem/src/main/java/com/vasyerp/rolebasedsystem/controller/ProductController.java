@@ -4,12 +4,19 @@ import com.vasyerp.rolebasedsystem.dto.ApiResponse;
 import com.vasyerp.rolebasedsystem.dto.CreateProductRequest;
 import com.vasyerp.rolebasedsystem.dto.ProductDTO;
 import com.vasyerp.rolebasedsystem.dto.UpdateProductRequest;
+import com.vasyerp.rolebasedsystem.model.Image;
+import com.vasyerp.rolebasedsystem.service.ImageService;
 import com.vasyerp.rolebasedsystem.service.ProductService;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/products")
@@ -17,9 +24,11 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+    private final ImageService imageService;
 
-    public ProductController(ProductService productService) {
+    public ProductController(ProductService productService, ImageService imageService) {
         this.productService = productService;
+        this.imageService = imageService;
     }
 
     @PostMapping("/create")
@@ -124,6 +133,65 @@ public class ProductController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @PostMapping(value = "/{productId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<String>> uploadProductImage(
+            @RequestHeader("userId") Long userId,
+            @PathVariable Long productId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            String message = imageService.uploadImage(userId, productId, file);
+            return ResponseEntity.ok(new ApiResponse<>(true, message));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @PutMapping(value = "/{productId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<String>> updateProductImage(
+            @RequestHeader("userId") Long userId,
+            @PathVariable Long productId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            String message = imageService.updateImage(userId, productId, file);
+            return ResponseEntity.ok(new ApiResponse<>(true, message));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @DeleteMapping("/{productId}/image")
+    public ResponseEntity<ApiResponse<String>> removeProductImage(
+            @RequestHeader("userId") Long userId,
+            @PathVariable Long productId) {
+        try {
+            String message = imageService.deleteImage(userId, productId);
+            return ResponseEntity.ok(new ApiResponse<>(true, message));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @GetMapping("/{productId}/image")
+    public ResponseEntity<byte[]> getProductImage(@PathVariable Long productId) {
+        try {
+            Image image = imageService.getImage(productId);
+            MediaType contentType = MediaType.APPLICATION_OCTET_STREAM;
+            if (image.getType() != null && !image.getType().isBlank()) {
+                contentType = MediaType.parseMediaType(image.getType());
+            }
+            return ResponseEntity.ok()
+                    .contentType(contentType)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + image.getName() + "\"")
+                    .cacheControl(CacheControl.maxAge(0, TimeUnit.SECONDS).cachePrivate().mustRevalidate())
+                    .body(image.getData());
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
         }
     }
 }

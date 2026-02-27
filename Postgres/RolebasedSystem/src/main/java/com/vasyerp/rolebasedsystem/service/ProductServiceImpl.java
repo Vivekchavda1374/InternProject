@@ -5,6 +5,7 @@ import com.vasyerp.rolebasedsystem.dto.ProductDTO;
 import com.vasyerp.rolebasedsystem.dto.UpdateProductRequest;
 import com.vasyerp.rolebasedsystem.model.Product;
 import com.vasyerp.rolebasedsystem.model.UserFront;
+import com.vasyerp.rolebasedsystem.repository.ImageRepository;
 import com.vasyerp.rolebasedsystem.repository.ProductRepository;
 import com.vasyerp.rolebasedsystem.repository.UserFrontRepository;
 import org.springframework.cache.annotation.CacheEvict;
@@ -22,10 +23,16 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final UserFrontRepository userFrontRepository;
+    private final ImageRepository imageRepository;
 
-    public ProductServiceImpl(ProductRepository productRepository, UserFrontRepository userFrontRepository) {
+    public ProductServiceImpl(
+            ProductRepository productRepository,
+            UserFrontRepository userFrontRepository,
+            ImageRepository imageRepository
+    ) {
         this.productRepository = productRepository;
         this.userFrontRepository = userFrontRepository;
+        this.imageRepository = imageRepository;
     }
 
     @Override
@@ -125,6 +132,9 @@ public class ProductServiceImpl implements ProductService {
             throw new RuntimeException("User does not have permission to delete products for this company");
         }
 
+        if (imageRepository.existsById(productId)) {
+            imageRepository.deleteById(productId);
+        }
         productRepository.deleteById(productId);
     }
 

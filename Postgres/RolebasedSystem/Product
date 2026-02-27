@@ -631,3 +631,25 @@ ALTER TABLE user_front_address
 DROP COLUMN country;
 
 COMMIT;
+
+-- Product image table (one image per product; image.id = product.product_id)
+CREATE TABLE image (
+                       id BIGINT PRIMARY KEY,
+                       name TEXT NOT NULL,
+                       data BYTEA NOT NULL,
+                       type TEXT NOT NULL,
+                       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+                       CONSTRAINT fk_product_image
+                           FOREIGN KEY (id)
+                               REFERENCES product(product_id)
+                               ON DELETE CASCADE
+);
+
+-- If `image` table already exists, run this migration instead:
+-- ALTER TABLE image DROP CONSTRAINT IF EXISTS fk_user_image;
+-- ALTER TABLE image DROP CONSTRAINT IF EXISTS fk_product_image;
+-- ALTER TABLE image ALTER COLUMN id DROP DEFAULT;
+-- ALTER TABLE image
+--     ADD CONSTRAINT fk_product_image
+--     FOREIGN KEY (id) REFERENCES product(product_id) ON DELETE CASCADE;

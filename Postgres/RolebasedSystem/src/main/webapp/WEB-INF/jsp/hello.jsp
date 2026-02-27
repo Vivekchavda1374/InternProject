@@ -155,6 +155,11 @@
                                     class="form-control" name="stockQuantity"></div>
                             <div class="mb-2"><label>Description</label><textarea class="form-control"
                                     name="description"></textarea></div>
+                            <div class="mb-2">
+                                <label>Product Image</label>
+                                <input type="file" class="form-control" name="productImage" id="createProductImage"
+                                    accept="image/*">
+                            </div>
                         </form>
                     </div>
                     <div class="modal-footer">
@@ -394,9 +399,19 @@
                                     class="form-control" name="stockQuantity" id="editStockQuantity"></div>
                             <div class="mb-2"><label>Description</label><textarea class="form-control"
                                     name="description" id="editDescription"></textarea></div>
+                            <div class="mb-2">
+                                <label>Product Image</label>
+                                <input type="file" class="form-control" id="editProductImage" accept="image/*">
+                                <div class="mt-2">
+                                    <img id="editProductImagePreview" alt="Product Image Preview"
+                                        style="display:none; max-height:120px; border-radius:6px; border:1px solid #ddd; padding:2px;">
+                                    <div id="editProductImageEmpty" class="text-muted small">No image uploaded</div>
+                                </div>
+                            </div>
                         </form>
                     </div>
                     <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-danger me-auto" onclick="removeProductImage()">Remove Image</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         <button type="button" class="btn btn-primary" onclick="updateProduct()">Save Changes</button>
                     </div>
@@ -508,6 +523,7 @@
             let currentUserId = null;
             let currentUserName = null;
             let currentUserIsAdmin = false;
+            let currentEditingProductId = null;
             let companies = [], products = [];
             let externalPurchaseMode = false;
             const namePattern = /^[A-Za-z0-9 ]+_*$/;
@@ -547,6 +563,11 @@
                 }).fail(function () {
                     window.location.href = '/login';
                 });
+
+                $('#editProductModal').on('hidden.bs.modal', function () {
+                    currentEditingProductId = null;
+                    $('#editProductImage').val('');
+                });
             });
 
             function showToast(message, type = 'danger') {
@@ -572,6 +593,39 @@
                     $(this).remove();
                 });
                 bsToast.show();
+            }
+
+            function productImageUrl(productId) {
+                return '/api/products/' + productId + '/image?ts=' + Date.now();
+            }
+
+            function refreshEditProductImagePreview(productId) {
+                const preview = $('#editProductImagePreview');
+                const empty = $('#editProductImageEmpty');
+
+                preview.hide().off('load').off('error');
+                preview.on('load', function () {
+                    preview.show();
+                    empty.hide();
+                });
+                preview.on('error', function () {
+                    preview.hide();
+                    empty.show();
+                });
+                preview.attr('src', productImageUrl(productId));
+            }
+
+            function uploadProductImage(productId, file) {
+                const formData = new FormData();
+                formData.append('file', file);
+                return $.ajax({
+                    url: '/api/products/' + productId + '/image',
+                    type: 'POST',
+                    headers: { 'userId': currentUserId },
+                    data: formData,
+                    processData: false,
+                    contentType: false
+                });
             }
 
             function setupFormValidation() {
@@ -880,8 +934,8 @@
             }
 
             function saveProduct() {
-                const form = $('#createProductForm');
                 const data = getFormData('#createProductForm');
+                const imageFile = $('#createProductImage')[0]?.files?.[0] || null;
                 data.mrp = parseFloat(data.mrp) || 0;
                 data.sellingPrice = parseFloat(data.sellingPrice) || 0;
                 data.stockQuantity = parseFloat(data.stockQuantity) || 0;
@@ -906,12 +960,27 @@
                     contentType: 'application/json',
                     data: JSON.stringify(data),
                     success: function (response) {
+                        const productId = response?.data?.productId || response?.data?.id;
+                        if (imageFile && productId) {
+                            uploadProductImage(productId, imageFile)
+                                .done(function () {
+                                    $('#createProductModal').modal('hide');
+                                    table.ajax.reload();
+                                    showToast('Product and image created successfully', 'success');
+                                })
+                                .fail(function (xhr) {
+                                    $('#createProductModal').modal('hide');
+                                    table.ajax.reload();
+                                    showToast('Product created but image upload failed: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                                });
+                            return;
+                        }
                         $('#createProductModal').modal('hide');
                         table.ajax.reload();
-                        alert('Product created successfully');
+                        showToast('Product created successfully', 'success');
                     },
                     error: function (xhr) {
-                        alert('Error creating product: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                        showToast('Error creating product: ' + (xhr.responseJSON?.message || 'Unknown error'));
                     }
                 });
             }
@@ -1161,6 +1230,9 @@
                     $('#editSellingPrice').val(row.sellingPrice);
                     $('#editStockQuantity').val(row.stockQuantity);
                     $('#editDescription').val(row.description);
+                    $('#editProductImage').val('');
+                    currentEditingProductId = row.id;
+                    refreshEditProductImagePreview(row.id);
                     $('#editProductModal').modal('show');
                 }
             }
@@ -1263,6 +1335,7 @@
             function updateProduct() {
                 const id = $('#editProductId').val();
                 const data = getFormData('#editProductForm');
+                const imageFile = $('#editProductImage')[0]?.files?.[0] || null;
                 data.mrp = parseFloat(data.mrp);
                 data.sellingPrice = parseFloat(data.sellingPrice);
                 data.stockQuantity = parseFloat(data.stockQuantity);
@@ -1274,12 +1347,47 @@
                     contentType: 'application/json',
                     data: JSON.stringify(data),
                     success: function () {
+                        if (imageFile) {
+                            uploadProductImage(id, imageFile)
+                                .done(function () {
+                                    $('#editProductModal').modal('hide');
+                                    table.ajax.reload();
+                                    showToast('Product and image updated successfully', 'success');
+                                })
+                                .fail(function (xhr) {
+                                    $('#editProductModal').modal('hide');
+                                    table.ajax.reload();
+                                    showToast('Product updated but image upload failed: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                                });
+                            return;
+                        }
                         $('#editProductModal').modal('hide');
                         table.ajax.reload();
-                        alert('Product updated successfully');
+                        showToast('Product updated successfully', 'success');
                     },
                     error: function (xhr) {
-                        alert('Error updating product: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                        showToast('Error updating product: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                    }
+                });
+            }
+
+            function removeProductImage() {
+                if (!currentEditingProductId) {
+                    return;
+                }
+
+                $.ajax({
+                    url: '/api/products/' + currentEditingProductId + '/image',
+                    type: 'DELETE',
+                    headers: { 'userId': currentUserId },
+                    success: function () {
+                        $('#editProductImage').val('');
+                        refreshEditProductImagePreview(currentEditingProductId);
+                        table.ajax.reload(null, false);
+                        showToast('Product image removed', 'success');
+                    },
+                    error: function (xhr) {
+                        showToast('Error removing image: ' + (xhr.responseJSON?.message || 'Unknown error'));
                     }
                 });
             }
