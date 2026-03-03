@@ -24,6 +24,7 @@ public class CompleteDataServiceImpl implements CompleteDataService {
         this.completeDataRepository = completeDataRepository;
     }
 
+
     @Override
     @Cacheable(value = "completeDataAll", key = "#country == null ? 'ALL' : #country")
     public List<CompleteDataDTO> getAllData(String country) {
