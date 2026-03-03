@@ -32,6 +32,12 @@ public class Product {
     @Column(name = "selling_price")
     private Double sellingPrice;
 
+    @Column(name = "purchase_price")
+    private Double purchasePrice;
+
+    @Column(name = "product_variant_name", length = 150)
+    private String productVariantName;
+
     @Column(name = "description")
     private String description;
 

@@ -171,6 +171,8 @@ public class PurchaseServiceImpl implements PurchaseService {
         clonedProduct.setItemCode(sourceProduct.getItemCode());
         clonedProduct.setMrp(sourceProduct.getMrp());
         clonedProduct.setSellingPrice(sourceProduct.getSellingPrice());
+        clonedProduct.setPurchasePrice(sourceProduct.getPurchasePrice());
+        clonedProduct.setProductVariantName(sourceProduct.getProductVariantName());
         clonedProduct.setDescription(sourceProduct.getDescription());
         clonedProduct.setStockQuantity(0.0);
         return productRepository.save(clonedProduct);

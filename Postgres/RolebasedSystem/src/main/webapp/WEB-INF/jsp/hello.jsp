@@ -76,6 +76,36 @@
                             </table>
                         </div>
                         <div class="tab-pane fade" id="all-products-tab">
+                            <div class="card mb-3 border-secondary">
+                                <div class="card-body">
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-3">
+                                            <button type="button" class="btn btn-outline-secondary w-100"
+                                                onclick="downloadProductImportTemplate()">
+                                                <i class="fas fa-download"></i> Download Template
+                                            </button>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label class="form-label mb-1">Import File (.xlsx)</label>
+                                            <input type="file" id="productImportFile" class="form-control"
+                                                accept=".xlsx,.xls">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-warning w-100"
+                                                onclick="validateProductImportFile()">
+                                                Validate
+                                            </button>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-success w-100"
+                                                onclick="importProductImportFile()">
+                                                Import
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="productImportResult" class="mt-3"></div>
+                                </div>
+                            </div>
                             <table id="allProductsTable" class="table table-striped table-bordered table-hover table-sm">
                                 <thead class="table-dark">
                                     <tr>
@@ -83,8 +113,10 @@
                                         <th>Image</th>
                                         <th>Name</th>
                                         <th>Item Code</th>
+                                        <th>Variant</th>
                                         <th>Company/Branch ID</th>
                                         <th>MRP</th>
+                                        <th>Purchase Price</th>
                                         <th>Selling Price</th>
                                         <th>Stock</th>
                                         <th>Description</th>
@@ -171,6 +203,12 @@
                                         class="form-control" name="mrp"></div>
                                 <div class="col-md-6 mb-2"><label>Selling Price</label><input type="number" step="0.01"
                                         class="form-control" name="sellingPrice"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-2"><label>Purchase Price</label><input type="number" step="0.01"
+                                        class="form-control" name="purchasePrice"></div>
+                                <div class="col-md-6 mb-2"><label>Product Variant Name</label><input type="text"
+                                        class="form-control" name="productVariantName"></div>
                             </div>
                             <div class="mb-2"><label>Stock Quantity</label><input type="number" step="0.01"
                                     class="form-control" name="stockQuantity"></div>
@@ -416,6 +454,12 @@
                                 <div class="col-md-6 mb-2"><label>Selling Price</label><input type="number" step="0.01"
                                         class="form-control" name="sellingPrice" id="editSellingPrice"></div>
                             </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-2"><label>Purchase Price</label><input type="number" step="0.01"
+                                        class="form-control" name="purchasePrice" id="editPurchasePrice"></div>
+                                <div class="col-md-6 mb-2"><label>Product Variant Name</label><input type="text"
+                                        class="form-control" name="productVariantName" id="editProductVariantName"></div>
+                            </div>
                             <div class="mb-2"><label>Stock Quantity</label><input type="number" step="0.01"
                                     class="form-control" name="stockQuantity" id="editStockQuantity"></div>
                             <div class="mb-2"><label>Description</label><textarea class="form-control"
@@ -478,6 +522,14 @@
                                 <tr>
                                     <th>Selling Price</th>
                                     <td id="viewProductSellingPrice"></td>
+                                </tr>
+                                <tr>
+                                    <th>Purchase Price</th>
+                                    <td id="viewProductPurchasePrice"></td>
+                                </tr>
+                                <tr>
+                                    <th>Variant Name</th>
+                                    <td id="viewProductVariantName"></td>
                                 </tr>
                                 <tr>
                                     <th>Stock</th>
@@ -603,6 +655,7 @@
             let currentUserIsAdmin = false;
             let currentUserIsCompany = false;
             let currentEditingProductId = null;
+            let productImportLastValidation = null;
             let companies = [], products = [];
             let externalPurchaseMode = false;
             const namePattern = /^[A-Za-z0-9 ]+_*$/;
@@ -648,6 +701,11 @@
                 $('#editProductModal').on('hidden.bs.modal', function () {
                     currentEditingProductId = null;
                     $('#editProductImage').val('');
+                });
+
+                $('#productImportFile').on('change', function () {
+                    productImportLastValidation = null;
+                    $('#productImportResult').empty();
                 });
 
                 $('button[data-bs-target="#all-products-tab"]').on('shown.bs.tab', function () {
@@ -779,6 +837,8 @@
                 $('#editItemCode').val(product.itemCode || '');
                 $('#editMrp').val(product.mrp ?? '');
                 $('#editSellingPrice').val(product.sellingPrice ?? '');
+                $('#editPurchasePrice').val(product.purchasePrice ?? '');
+                $('#editProductVariantName').val(product.productVariantName || '');
                 $('#editStockQuantity').val(product.stockQuantity ?? '');
                 $('#editDescription').val(product.description || '');
                 $('#editProductImage').val('');
@@ -802,6 +862,8 @@
                     $('#viewProductCompanyId').text(product.companyId ?? '-');
                     $('#viewProductMrp').text(formatInr(product.mrp));
                     $('#viewProductSellingPrice').text(formatInr(product.sellingPrice));
+                    $('#viewProductPurchasePrice').text(formatInr(product.purchasePrice));
+                    $('#viewProductVariantName').text(product.productVariantName || '-');
                     const qty = parseFloat(product.stockQuantity);
                     $('#viewProductStockQuantity').text(Number.isFinite(qty) ? qty.toFixed(2) : '0.00');
                     $('#viewProductDescription').text(product.description || '-');
@@ -833,6 +895,7 @@
                     ajax: {
                         url: '/api/products',
                         type: 'GET',
+                        headers: { 'userId': currentUserId },
                         dataSrc: function (response) {
                             return response?.data || [];
                         },
@@ -858,9 +921,17 @@
                         },
                         { data: 'productName', defaultContent: '' },
                         { data: 'itemCode', defaultContent: '' },
+                        { data: 'productVariantName', defaultContent: '' },
                         { data: 'companyId', defaultContent: '' },
                         {
                             data: 'mrp',
+                            defaultContent: '0',
+                            render: function (data) {
+                                return formatInr(data);
+                            }
+                        },
+                        {
+                            data: 'purchasePrice',
                             defaultContent: '0',
                             render: function (data) {
                                 return formatInr(data);
@@ -903,6 +974,144 @@
                 if (allProductsTable) {
                     allProductsTable.ajax.reload(null, false);
                 }
+            }
+
+            function getProductImportFile() {
+                const fileInput = $('#productImportFile')[0];
+                if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                    showToast('Please select an Excel file (.xlsx) first', 'warning');
+                    return null;
+                }
+                return fileInput.files[0];
+            }
+
+            function renderProductImportResult(result, title, type) {
+                if (!result) {
+                    $('#productImportResult').html('');
+                    return;
+                }
+                const isValid = !!result.valid;
+                const alertClass = type || (isValid ? 'success' : 'danger');
+                const totalRows = result.totalRows ?? 0;
+                const validRows = result.validRows ?? 0;
+                const invalidRows = result.invalidRows ?? 0;
+                const importedCount = result.importedCount ?? 0;
+                const errors = Array.isArray(result.errors) ? result.errors : [];
+
+                let html = '<div class="alert alert-' + alertClass + ' mb-2">' +
+                    '<strong>' + title + '</strong><br>' +
+                    'Total Rows: ' + totalRows + ' | Valid Rows: ' + validRows + ' | Invalid Rows: ' + invalidRows +
+                    ' | Imported: ' + importedCount +
+                    '</div>';
+
+                if (errors.length > 0) {
+                    html += '<div class="table-responsive"><table class="table table-sm table-bordered mb-0">' +
+                        '<thead class="table-light"><tr><th>Row</th><th>Product</th><th>Item Code</th><th>Errors</th></tr></thead><tbody>';
+                    errors.forEach(function (error) {
+                        const messages = Array.isArray(error.messages) ? error.messages.join('; ') : '';
+                        html += '<tr>' +
+                            '<td>' + (error.rowNumber ?? '-') + '</td>' +
+                            '<td>' + (error.productName ?? '-') + '</td>' +
+                            '<td>' + (error.itemCode ?? '-') + '</td>' +
+                            '<td>' + messages + '</td>' +
+                            '</tr>';
+                    });
+                    html += '</tbody></table></div>';
+                }
+
+                $('#productImportResult').html(html);
+            }
+
+            function downloadProductImportTemplate() {
+                fetch('/api/products/import/template', { method: 'GET', credentials: 'same-origin' })
+                    .then(async function (response) {
+                        if (!response.ok) {
+                            throw new Error('Unable to download product import template');
+                        }
+                        const disposition = response.headers.get('content-disposition') || '';
+                        const fileNameMatch = disposition.match(/filename=\"?([^\";]+)\"?/i);
+                        const fileName = fileNameMatch ? fileNameMatch[1] : 'product-import-template.xlsx';
+                        const blob = await response.blob();
+                        const downloadUrl = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = downloadUrl;
+                        link.download = fileName;
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                        window.URL.revokeObjectURL(downloadUrl);
+                        showToast('Template downloaded successfully', 'success');
+                    })
+                    .catch(function (error) {
+                        showToast(error.message || 'Template download failed');
+                    });
+            }
+
+            function validateProductImportFile() {
+                const file = getProductImportFile();
+                if (!file) {
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('file', file);
+
+                $.ajax({
+                    url: '/api/products/import/validate',
+                    type: 'POST',
+                    headers: { 'userId': currentUserId, 'companyId': currentUserId },
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        productImportLastValidation = response?.data || null;
+                        renderProductImportResult(productImportLastValidation, 'Validation passed', 'success');
+                        showToast('Excel validation passed', 'success');
+                    },
+                    error: function (xhr) {
+                        const result = xhr.responseJSON?.data;
+                        productImportLastValidation = result || null;
+                        if (result) {
+                            renderProductImportResult(result, 'Validation failed', 'danger');
+                            showToast('Excel validation failed');
+                        } else {
+                            showToast('Validation error: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                        }
+                    }
+                });
+            }
+
+            function importProductImportFile() {
+                const file = getProductImportFile();
+                if (!file) {
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('file', file);
+
+                $.ajax({
+                    url: '/api/products/import',
+                    type: 'POST',
+                    headers: { 'userId': currentUserId, 'companyId': currentUserId },
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        const result = response?.data || {};
+                        productImportLastValidation = result;
+                        renderProductImportResult(result, 'Import completed', 'success');
+                        table?.ajax?.reload?.();
+                        reloadAllProductsTable();
+                        showToast('Products imported successfully', 'success');
+                    },
+                    error: function (xhr) {
+                        const result = xhr.responseJSON?.data;
+                        productImportLastValidation = result || null;
+                        if (result) {
+                            renderProductImportResult(result, 'Import failed', 'danger');
+                        }
+                        showToast(xhr.responseJSON?.message || 'Product import failed');
+                    }
+                });
             }
 
             function setupFormValidation() {
@@ -1021,6 +1230,7 @@
                 $.ajax({
                     url: '/api/products',
                     type: 'GET',
+                    headers: { 'userId': currentUserId },
                     success: function (response) {
                         const list = response?.data || [];
                         products = list.map(p => ({
@@ -1215,6 +1425,7 @@
                 const imageFile = $('#createProductImage')[0]?.files?.[0] || null;
                 data.mrp = parseFloat(data.mrp) || 0;
                 data.sellingPrice = parseFloat(data.sellingPrice) || 0;
+                data.purchasePrice = parseFloat(data.purchasePrice) || 0;
                 data.stockQuantity = parseFloat(data.stockQuantity) || 0;
                 let companyId = data.companyId;
                 if (isNaN(parseInt(companyId))) {
@@ -1617,6 +1828,7 @@
                 const imageFile = $('#editProductImage')[0]?.files?.[0] || null;
                 data.mrp = parseFloat(data.mrp);
                 data.sellingPrice = parseFloat(data.sellingPrice);
+                data.purchasePrice = parseFloat(data.purchasePrice);
                 data.stockQuantity = parseFloat(data.stockQuantity);
 
                 $.ajax({
@@ -1810,6 +2022,7 @@
                 $.ajax({
                     url: '/api/products',
                     type: 'GET',
+                    headers: { 'userId': currentUserId },
                     success: function (response) {
                         const list = response?.data || [];
                         products = list.map(p => ({

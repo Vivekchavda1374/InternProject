@@ -13,6 +13,8 @@ public class UpdateProductRequest {
     private String itemCode;
     private Double mrp;
     private Double sellingPrice;
+    private Double purchasePrice;
+    private String productVariantName;
     private String description;
     private Double stockQuantity;
 }

@@ -1,7 +1,6 @@
 package com.vasyerp.rolebasedsystem.service;
 
 import com.vasyerp.rolebasedsystem.model.Image;
-import com.vasyerp.rolebasedsystem.model.Product;
 import com.vasyerp.rolebasedsystem.repository.ImageRepository;
 import com.vasyerp.rolebasedsystem.repository.ProductRepository;
 import com.vasyerp.rolebasedsystem.repository.UserFrontRepository;
@@ -41,7 +40,7 @@ public class ImageServiceImpl implements ImageService {
 
     @Override
     public String deleteImage(Long userId, Long productId) {
-        Product product = productRepository.findById(productId)
+        productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
         if (!hasProductEditPermission(userId)) {
@@ -63,9 +62,6 @@ public class ImageServiceImpl implements ImageService {
     }
 
     private String saveOrUpdateImage(Long userId, Long productId, MultipartFile file) throws IOException {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
-
         if (!hasProductEditPermission(userId)) {
             throw new RuntimeException("User does not have permission to update product image");
         }
@@ -108,14 +104,22 @@ public class ImageServiceImpl implements ImageService {
     }
 
     private boolean isCompany(Long userId) {
-        return userFrontRepository.findById(userId)
-                .map(user -> user.getParentCompany() == null)
-                .orElse(false);
+        try {
+            return userFrontRepository.findById(userId)
+                    .map(user -> user.getParentCompany() == null)
+                    .orElse(false);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private boolean isBranch(Long userId) {
-        return userFrontRepository.findById(userId)
-                .map(user -> user.getParentCompany() != null)
-                .orElse(false);
+        try {
+            return userFrontRepository.findById(userId)
+                    .map(user -> user.getParentCompany() != null)
+                    .orElse(false);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

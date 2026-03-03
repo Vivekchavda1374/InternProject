@@ -31,6 +31,8 @@ public class ProductRepositoryImpl implements ProductRepository {
         product.setItemCode(rs.getString("item_code"));
         product.setMrp(rs.getObject("mrp", Double.class));
         product.setSellingPrice(rs.getObject("selling_price", Double.class));
+        product.setPurchasePrice(rs.getObject("purchase_price", Double.class));
+        product.setProductVariantName(rs.getString("product_variant_name"));
         product.setDescription(rs.getString("description"));
         product.setStockQuantity(rs.getObject("stock_quantity", Double.class));
         return product;
@@ -39,7 +41,7 @@ public class ProductRepositoryImpl implements ProductRepository {
     @Override
     public Product save(Product product) {
         if (product.getProductId() == null) {
-            String sql = "INSERT INTO product (product_name, company_id, item_code, mrp, selling_price, description, stock_quantity) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO product (product_name, company_id, item_code, mrp, selling_price, purchase_price, product_variant_name, description, stock_quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
             KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbcTemplate.update(connection -> {
                 PreparedStatement ps = connection.prepareStatement(sql, new String[]{"product_id"});
@@ -48,8 +50,10 @@ public class ProductRepositoryImpl implements ProductRepository {
                 ps.setString(3, product.getItemCode());
                 ps.setObject(4, product.getMrp());
                 ps.setObject(5, product.getSellingPrice());
-                ps.setString(6, product.getDescription());
-                ps.setObject(7, product.getStockQuantity());
+                ps.setObject(6, product.getPurchasePrice());
+                ps.setString(7, product.getProductVariantName());
+                ps.setString(8, product.getDescription());
+                ps.setObject(9, product.getStockQuantity());
                 return ps;
             }, keyHolder);
 
@@ -73,13 +77,15 @@ public class ProductRepositoryImpl implements ProductRepository {
                 throw new IllegalStateException("Failed to retrieve generated product_id");
             }
         } else {
-            String sql = "UPDATE product SET product_name = ?, company_id = ?, item_code = ?, mrp = ?, selling_price = ?, description = ?, stock_quantity = ? WHERE product_id = ?";
+            String sql = "UPDATE product SET product_name = ?, company_id = ?, item_code = ?, mrp = ?, selling_price = ?, purchase_price = ?, product_variant_name = ?, description = ?, stock_quantity = ? WHERE product_id = ?";
             jdbcTemplate.update(sql,
                     product.getProductName(),
                     product.getCompanyId(),
                     product.getItemCode(),
                     product.getMrp(),
                     product.getSellingPrice(),
+                    product.getPurchasePrice(),
+                    product.getProductVariantName(),
                     product.getDescription(),
                     product.getStockQuantity(),
                     product.getProductId());

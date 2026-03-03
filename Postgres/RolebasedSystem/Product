@@ -159,8 +159,14 @@ CREATE TABLE user_front_address (
 ALTER TABLE product
 ADD COLUMN mrp NUMERIC(10,2),
 ADD COLUMN selling_price NUMERIC(10,2),
+ADD COLUMN purchase_price NUMERIC(10,2),
+ADD COLUMN product_variant_name VARCHAR(150),
 ADD COLUMN description TEXT,
 ADD COLUMN stock_quantity FLOAT8;
+
+CREATE UNIQUE INDEX ux_product_company_item_code
+    ON product(company_id, item_code)
+    WHERE item_code IS NOT NULL;
 
 
 -- Clear existing data (optional, careful with production!)
@@ -405,8 +411,14 @@ CREATE TABLE user_front_address (
 ALTER TABLE product
 ADD COLUMN mrp NUMERIC(10,2),
 ADD COLUMN selling_price NUMERIC(10,2),
+ADD COLUMN purchase_price NUMERIC(10,2),
+ADD COLUMN product_variant_name VARCHAR(150),
 ADD COLUMN description TEXT,
 ADD COLUMN stock_quantity FLOAT8;
+
+CREATE UNIQUE INDEX ux_product_company_item_code
+    ON product(company_id, item_code)
+    WHERE item_code IS NOT NULL;
 
 CREATE TABLE user_front_address (
     user_front_address_id BIGSERIAL PRIMARY KEY,

@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -46,13 +47,67 @@ public class ProductController {
         }
     }
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<ProductDTO>>> getAllProducts() {
+    @GetMapping("/import/template")
+    public ResponseEntity<byte[]> downloadProductImportTemplate() {
         try {
-            List<ProductDTO> products = productService.getAllProducts();
+            byte[] file = productService.generateProductImportTemplate();
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"product-import-template.xlsx\"")
+                    .body(file);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new byte[0]);
+        }
+    }
+
+    @PostMapping(value = "/import/validate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> validateProductImport(
+            @RequestHeader("userId") Long userId,
+            @RequestHeader("companyId") Long companyId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            Map<String, Object> validation = productService.validateProductImportExcel(userId, companyId, file);
+            boolean isValid = Boolean.TRUE.equals(validation.get("valid"));
+            if (isValid) {
+                return ResponseEntity.ok(new ApiResponse<>(true, "Excel file is valid", validation));
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(false, "Excel validation failed", validation));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> importProductsFromExcel(
+            @RequestHeader("userId") Long userId,
+            @RequestHeader("companyId") Long companyId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            Map<String, Object> result = productService.importProductsFromExcel(userId, companyId, file);
+            boolean isValid = Boolean.TRUE.equals(result.get("valid"));
+            if (!isValid) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new ApiResponse<>(false, "Import stopped. Excel file is invalid", result));
+            }
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(new ApiResponse<>(true, "Products imported successfully", result));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<ProductDTO>>> getAllProducts(
+            @RequestHeader("userId") Long userId) {
+        try {
+            List<ProductDTO> products = productService.getVisibleProducts(userId);
             return ResponseEntity.ok(new ApiResponse<>(true, "Products retrieved successfully", products));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
     }
